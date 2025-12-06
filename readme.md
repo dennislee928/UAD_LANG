@@ -141,42 +141,45 @@ Current ecosystems (Python scripts, YAML configs, proprietary SIEM rules) are fr
 - **可驗證性**：.uad 旨在對倫理邊界進行靜態分析。我們希望在編譯時期就能證明「此情境不會產生大於 X 的致命錯誤率」，這在動態語言中極難實現。
 - **領域原語**：諸如 Action、Judge 與 Mistake 是內建型別而非外部函式庫，這強制了語意的一致性。
 - **決定論**：.uad VM 確保模擬執行的結果是完全可重現的，這是 Cyber Range 科學嚴謹性的基本要求。
-2. Language Stack Overview / 語言堆疊總覽
-2.1 Layers / 語言層級
-English
-.uad is structured as a three-layer stack:
-.uad-IR – Intermediate Representation & VM
-Low-level typed instruction set.
-Deterministic, analyzable, sandboxable execution.
-Target for .uad-core compilation.
-.uad-core – Core Programming Language
-Strongly-typed, expression-oriented language.
-Functions, structs, enums, time/uncertainty primitives.
-General enough for simulation, metrics, orchestration.
-.uad-model – Domain Modeling DSL
-Declarative syntax for:
-Ethical Riemann Hypothesis (ERH) profiles.
-Psychohistory-style population models.
-Adversarial cyber range scenarios.
-Cognitive SIEM rules, detectors, metrics.
-Compiles down to .uad-core.
-中文
-.uad 採三層語言堆疊設計：
-.uad-IR – 中介表示與虛擬機層
-低階、具型別的指令集。
-決定論、易分析、可沙箱化的執行環境。
-作為 .uad-core 編譯的目標。
-.uad-core – 核心程式語言層
-強型別、以運算式為中心的語言。
-提供函式、struct、enum，以及時間／不確定性原語。
-足夠通用，可用於模擬、指標計算與協調控制。
-.uad-model – 領域建模 DSL 層
-用宣告式語法撰寫：
-Ethical Riemann Hypothesis（ERH）profile。
-心理史學式的群體與宏觀模型。
-對抗式 Cyber Range 攻防情境。
-認知型 SIEM 的規則、偵測器與指標。
-編譯為 .uad-core 程式。
+## 2. Language Stack Overview / 語言堆疊總覽
+
+### 2.1 Layers / 層級架構
+
+#### English
+
+.uad is structured as a hierarchical stack:
+
+**`.uad-IR` (Infrastructure Layer)**
+- A low-level, typed instruction set architecture (ISA).
+- Provides deterministic, analyzable, and sandboxable execution suitable for running untrusted models.
+
+**`.uad-core` (Logic Layer)**
+- A Turing-complete, strongly-typed functional language.
+- Features structs, enums, pattern matching, and time/uncertainty primitives.
+- Compiles to .uad-IR.
+
+**`.uad-model` (Domain Layer)**
+- A declarative DSL for defining high-level profiles and scenarios.
+- Used to write ERH profiles, Psychohistory models, and Cognitive SIEM rules.
+- Transpiles to .uad-core.
+
+#### 中文
+
+.uad 採階層式架構設計：
+
+**`.uad-IR`（基礎設施層）**
+- 低階、具型別的指令集架構（ISA）。
+- 提供決定論、可分析且可沙箱化的執行環境，適合運作不受信任的模型。
+
+**`.uad-core`（邏輯層）**
+- 圖靈完備、強型別的函數式語言。
+- 具備 Struct、Enum、模式比對（Pattern Matching）以及時間／不確定性原語。
+- 編譯為 .uad-IR。
+
+**`.uad-model`（領域層）**
+- 宣告式 DSL，用於定義高階 Profile 與情境。
+- 用於撰寫 ERH Profile、心理史學模型與認知型 SIEM 規則。
+- 轉譯為 .uad-core。
 3. Core Concepts / 核心概念
 3.1 Decision & Action / 決策與行動
 English
