@@ -1,4 +1,5 @@
 # .uad Programming Language Whitepaper
+
 # .uad 程式語言白皮書
 
 **Version:** 0.1.0-draft  
@@ -433,6 +434,7 @@ erh_profile "GitLab-DevSecOps" {
 ```
 
 This compiles into .uad-core code that:
+
 - Maps real-world DevSecOps data into Action/Judge instances.
 - Computes ethical primes, Π(x), E(x), and α.
 - Exports metrics for visualization and reporting.
@@ -479,6 +481,7 @@ erh_profile "GitLab-DevSecOps" {
 ```
 
 編譯後會產生 .uad-core 程式：
+
 - 將實際 DevSecOps 資料映射為 Action / Judge。
 - 計算 ethical prime、Π(x)、E(x) 與 α。
 - 匯出可視覺化與報告所需指標。
@@ -492,19 +495,19 @@ Defining a Red vs. Blue scenario for a Cyber Range:
 ```uadmodel
 scenario "ransomware_lab01" {
   topology "enterprise_win_lin"
-  
+
   red_team {
     tactic initial_access using phishing_email
     tactic execution      using macro_payload
     lateral_movement      using smb_bruteforce
     impact                encrypt_files
   }
-  
+
   expected_telemetry {
     siem_rule "Ransomware_Anomaly"
     ueba_anomaly on user "alice"
   }
-  
+
   evaluate_blue_team {
     // Success criteria
     metric MTTD <= 15m
@@ -520,19 +523,19 @@ scenario "ransomware_lab01" {
 ```uadmodel
 scenario "ransomware_lab01" {
   topology "enterprise_win_lin"
-  
+
   red_team {
     tactic initial_access using phishing_email
     tactic execution      using macro_payload
     lateral_movement      using smb_bruteforce
     impact                encrypt_files
   }
-  
+
   expected_telemetry {
     siem_rule "Ransomware_Anomaly"
     ueba_anomaly on user "alice"
   }
-  
+
   evaluate_blue_team {
     // 成功標準
     metric MTTD <= 15m
