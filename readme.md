@@ -388,241 +388,219 @@ fn is_mistake(a: Action, j: Judge, threshold: Float) -> Bool {
 - **記憶體**：LOAD, STORE, ALLOC, FREE
 - **領域指令**：EMIT_EVENT, RECORD_MISTAKE, RECORD_PRIME, SAMPLE_RNG, UPDATE_MACROSTATE
 
-6. .uad-model DSL / .uad-model 建模 DSL
-   6.1 ERH Profiles / ERH Profile 建模
-   English
-   Example .uad-model fragment:
-   code
-   Uadmodel
-   action_class MergeRequest {
-   complexity = log(1 + lines_changed) + 0.5 _ files_changed
-   true_value = if has_incident_within(90d) then -1.0 else +1.0
-   importance = asset_criticality _ (1 + internet_exposed)
-   }
+## 6. .uad-model DSL / .uad-model 建模 DSL
 
-judge pipeline_judge for MergeRequest {
-decision = case {
-pipeline_passed && !overridden -> +1.0
-!pipeline_passed -> -1.0
-else -> 0.0
-}
-}
+### 6.1 ERH Profiles / ERH Profile 範例
 
-erh_profile "GitLab-DevSecOps" {
-actions from dataset "mr_security_logs"
-judge = pipeline_judge
+#### English
 
-prime_threshold {
-mistake_delta > 0.5
-importance_quantile >= 0.9
-complexity >= 40.0
-}
+High-level declaration of an analysis profile:
 
-fit_alpha {
-range = [10.0, 80.0]
-method = "loglog_regression"
-}
-}
-This compiles into .uad-core code that:
-Maps real-world DevSecOps data into Action/Judge instances.
-Computes ethical primes, Π(x), E(x), and α.
-Exports metrics for visualization and reporting.
-中文
-.uad-model 的一段 ERH Profile 範例：
-code
-Uadmodel
+```uadmodel
+// Define how raw data maps to an Action
 action_class MergeRequest {
-complexity = log(1 + lines_changed) + 0.5 _ files_changed
-true_value = if has_incident_within(90d) then -1.0 else +1.0
-importance = asset_criticality _ (1 + internet_exposed)
+  // Complexity derived from code churn
+  complexity = log(1 + lines_changed) + 0.5 * files_changed
+  // Ground truth: did it cause an incident?
+  true_value = if has_incident_within(90d) then -1.0 else +1.0
+  importance = asset_criticality * (1 + internet_exposed)
 }
 
+// Define the Judge (the CI/CD pipeline)
 judge pipeline_judge for MergeRequest {
-decision = case {
-pipeline_passed && !overridden -> +1.0
-!pipeline_passed -> -1.0
-else -> 0.0
-}
+  decision = case {
+    pipeline_passed && !overridden -> +1.0
+    !pipeline_passed               -> -1.0
+    else                           -> 0.0
+  }
 }
 
+// The Profile binds actions, judges, and analysis parameters
 erh_profile "GitLab-DevSecOps" {
-actions from dataset "mr_security_logs"
-judge = pipeline_judge
+  actions from dataset "mr_security_logs"
+  judge   = pipeline_judge
 
-prime_threshold {
-mistake_delta > 0.5
-importance_quantile >= 0.9
-complexity >= 40.0
+  prime_threshold {
+    mistake_delta > 0.5
+    importance_quantile >= 0.90 // Top 10% importance
+    complexity >= 40.0
+  }
+
+  fit_alpha {
+    range  = [10.0, 80.0]
+    method = "loglog_regression"
+  }
+}
+```
+
+This compiles into .uad-core code that:
+- Maps real-world DevSecOps data into Action/Judge instances.
+- Computes ethical primes, Π(x), E(x), and α.
+- Exports metrics for visualization and reporting.
+
+#### 中文
+
+高階宣告式的分析 Profile：
+
+```uadmodel
+// 定義原始資料如何映射為 Action
+action_class MergeRequest {
+  // 複雜度源自程式碼變動量
+  complexity = log(1 + lines_changed) + 0.5 * files_changed
+  // 真實值：是否導致了事故？
+  true_value = if has_incident_within(90d) then -1.0 else +1.0
+  importance = asset_criticality * (1 + internet_exposed)
 }
 
-fit_alpha {
-range = [10.0, 80.0]
-method = "loglog_regression"
+// 定義 Judge（此處為 CI/CD Pipeline）
+judge pipeline_judge for MergeRequest {
+  decision = case {
+    pipeline_passed && !overridden -> +1.0
+    !pipeline_passed               -> -1.0
+    else                           -> 0.0
+  }
 }
+
+// Profile 將 Action、Judge 與分析參數綁定
+erh_profile "GitLab-DevSecOps" {
+  actions from dataset "mr_security_logs"
+  judge   = pipeline_judge
+
+  prime_threshold {
+    mistake_delta > 0.5
+    importance_quantile >= 0.90 // 重要性前 10%
+    complexity >= 40.0
+  }
+
+  fit_alpha {
+    range  = [10.0, 80.0]
+    method = "loglog_regression"
+  }
 }
+```
+
 編譯後會產生 .uad-core 程式：
-將實際 DevSecOps 資料映射為 Action / Judge。
-計算 ethical prime、Π(x)、E(x) 與 α。
-匯出可視覺化與報告所需指標。
-6.2 Adversarial Cyber Range & Cognitive SIEM / 對抗式 Cyber Range 與認知型 SIEM
-English (sketch)
-code
-Uadmodel
+- 將實際 DevSecOps 資料映射為 Action / Judge。
+- 計算 ethical prime、Π(x)、E(x) 與 α。
+- 匯出可視覺化與報告所需指標。
+
+### 6.2 Adversarial Scenarios / 對抗式情境
+
+#### English
+
+Defining a Red vs. Blue scenario for a Cyber Range:
+
+```uadmodel
 scenario "ransomware_lab01" {
-topology "enterprise_win_lin"
-red_team {
-tactic initial_access using phishing_email
-tactic execution using macro_payload
-lateral_movement using smb_bruteforce
-impact encrypt_files
+  topology "enterprise_win_lin"
+  
+  red_team {
+    tactic initial_access using phishing_email
+    tactic execution      using macro_payload
+    lateral_movement      using smb_bruteforce
+    impact                encrypt_files
+  }
+  
+  expected_telemetry {
+    siem_rule "Ransomware_Anomaly"
+    ueba_anomaly on user "alice"
+  }
+  
+  evaluate_blue_team {
+    // Success criteria
+    metric MTTD <= 15m
+    metric missed_detections < 2
+  }
 }
-expected_telemetry {
-siem_rule "Ransomware_Anomaly"
-ueba_anomaly on user "alice"
-}
-evaluate_blue_team {
-metric MTTD <= 15m
-metric missed_detections < 2
-}
-}
+```
 
-cognitive_siem "lab_siem" {
-ingest from "range_logs"
-analytics {
-rule_engine enabled
-ueba_model "user_baseline_v1"
-anomaly_model "net_flow_v2"
-}
-assistant {
-model "gpt-like"
-tools [ "search_events", "summarize_incident", "generate_playbook" ]
-}
-}
-中文（示意）
-code
-Uadmodel
+#### 中文
+
+為 Cyber Range 定義紅藍對抗情境：
+
+```uadmodel
 scenario "ransomware_lab01" {
-topology "enterprise_win_lin"
-red_team {
-tactic initial_access using phishing_email
-tactic execution using macro_payload
-lateral_movement using smb_bruteforce
-impact encrypt_files
+  topology "enterprise_win_lin"
+  
+  red_team {
+    tactic initial_access using phishing_email
+    tactic execution      using macro_payload
+    lateral_movement      using smb_bruteforce
+    impact                encrypt_files
+  }
+  
+  expected_telemetry {
+    siem_rule "Ransomware_Anomaly"
+    ueba_anomaly on user "alice"
+  }
+  
+  evaluate_blue_team {
+    // 成功標準
+    metric MTTD <= 15m
+    metric missed_detections < 2
+  }
 }
-expected_telemetry {
-siem_rule "Ransomware_Anomaly"
-ueba_anomaly on user "alice"
-}
-evaluate_blue_team {
-metric MTTD <= 15m
-metric missed_detections < 2
-}
-}
+```
 
-cognitive_siem "lab_siem" {
-ingest from "range_logs"
-analytics {
-rule_engine enabled
-ueba_model "user_baseline_v1"
-anomaly_model "net_flow_v2"
-}
-assistant {
-model "gpt-like"
-tools [ "search_events", "summarize_incident", "generate_playbook" ]
-}
-} 7. Tooling & Ecosystem / 工具鏈與生態
-English
-Planned tooling for .uad:
-uadc – compiler ( .uad-model → .uad-core → .uad-IR )
-uadvm – standalone VM runner for .uad-IR bytecode
-uad-repl – interactive shell for quick experiments
-LSP support (language server) for:
-syntax highlighting, completion, diagnostics
-quick navigation across models, profiles, scenarios
-Bridges:
-Python / Go bindings to embed .uad models in existing systems
-Connectors to SIEM / XDR / cyber range platforms
-中文
-.uad 預期提供的工具包含：
-uadc – 編譯器（ .uad-model → .uad-core → .uad-IR ）
-uadvm – 獨立 VM 執行器，負責執行 .uad-IR 位元碼
-uad-repl – 互動式殼層，用於快速實驗
-LSP 語言伺服器：
-語法高亮、補全與診斷
-在 model / profile / scenario 之間快速導覽
-橋接元件：
-Python / Go 綁定，使 .uad 模型可嵌入既有系統
-對接 SIEM / XDR / Cyber Range 平台的 connector 8. Security & Ethics / 安全與倫理
-English
-.uad is explicitly designed for defensive, governance, and research purposes:
-All adversarial modeling is intended for controlled environments (cyber ranges, simulations, red-team labs).
-The language encourages explicit representation of:
-ethical weights, vulnerable populations, systemic risk.
-The ecosystem will provide:
-templates for responsible disclosure workflows,
-patterns for privacy-preserving data ingestion,
-guidelines for using .uad in academic and industrial settings.
-中文
-.uad 明確定位於 防禦、治理與研究：
-所有攻擊與對抗建模皆假定在受控環境中（Cyber Range、模擬環境、紅隊實驗室）。
-語言層鼓勵明確表達：
-倫理權重、易受害群體與系統性風險。
-生態系將提供：
-負責任揭露流程的範本、
-隱私保護資料匯入模式、
-適用於學術與產業場域的使用指引。 9. Roadmap / 未來路線
-English
-Short-term:
-Implement minimal .uad-core interpreter and .uad-IR VM.
-Port existing ERH simulations and security PoCs into .uad.
-Release example repositories (DevSecOps ERH, AI adversarial range, cognitive SIEM demo).
-Mid-term:
-Full compiler pipeline with optimizations.
-Enriched .uad-model DSL for more domains (finance, healthcare, societal modeling).
-Formal semantics documentation and property-based testing harness.
-Long-term:
-Integration with formal verification tools (model checking, theorem provers).
-Native or LLVM-based backends for performance-critical scenarios.
-Community-driven library of reusable models, scenarios, and governance templates.
-中文
-短期目標：
-實作最小可用的 .uad-core 解譯器與 .uad-IR VM。
-將既有 ERH 模擬與安全 PoC 以 .uad 重寫。
-釋出示範專案（DevSecOps ERH、AI 對抗式演練場、認知型 SIEM Demo）。
-中期目標：
-建立完整的編譯管線與基本最佳化。
-擴充 .uad-model DSL，涵蓋更多領域（金融、醫療、社會系統）。
-撰寫形式語意文件並建立 property-based 測試架構。
-長期目標：
-與形式驗證工具整合（模型檢查、定理證明器）。
-實作原生或 LLVM 後端，支援高效能場景。
-建立由社群維護的模型、情境與治理範本資料庫。 10. Conclusion / 結語
-English
-.uad is an attempt to treat adversarial dynamics, ethical risk, and cognitive security as first-class programming concepts, rather than scattered scripts and configuration files.
-By unifying:
-micro-level decision events,
-meso-level adversarial campaigns, and
-macro-level psychohistory-style dynamics,
-.uad aspires to become a research-grade and engineering-ready language for those who design, test, and govern complex AI and security systems.
-中文
-.uad 試圖將 對抗式動態、倫理風險與認知型安全 提升為 程式語言的一級概念，而不再只是分散的腳本與設定檔。
-透過統一：
-微觀層級的決策事件、
-中觀層級的攻擊活動、
-宏觀層級的心理史學式動態，
-.uad 期望成為一門 兼具研究深度與工程實用性 的語言，服務於設計、測試與治理複雜 AI 與資安系統的各類角色。
-Model
-ThinkingThoughts
-Expand to view model thoughts
+## 7. Tooling & Ecosystem / 工具鏈與生態
 
-chevron_right
-這是一份經過潤飾與強化的版本。我主要做了以下幾點改進：
-語氣更專業（Tone Polish）：將英文部分的語氣調整得更接近學術論文與工程規格書（更加 Formal），中文部分則修正為資安與系統工程領域的慣用術語（例如：將 "Features" 翻得更精準，將 "Context" 翻譯為 "上下文" 或 "情境資訊"）。
-結構增強（Structure）：
-新增了 "1.3 Why a New Language? / 為何需要新語言？" 章節，這是白皮書中非常關鍵的部分，用來直接回答「為什麼不直接用 Python？」的質疑。
-在語法範例中增加了註解（Comments），讓讀者更容易理解程式碼意圖。
-排版優化（Formatting）：統一了標題層級，優化了 Code Block 的呈現方式，並微調了數學公式的表達。
-這份內容現在可以直接複製貼上到 GitHub/GitLab 的 README.md 或 WHITEPAPER.md 中。
+#### English
+
+- **uadc**: The compiler chain (.uad-model → .uad-core → .uad-IR).
+- **uadvm**: A standalone runner for bytecode execution.
+- **uad-repl**: Interactive shell for experimenting with risk models.
+- **LSP**: Language Server Protocol implementation for IDE support (VS Code, Vim).
+- **Bindings**: Python and Go wrappers to embed .uad logic into production systems.
+
+#### 中文
+
+- **uadc**：編譯器工具鏈（.uad-model → .uad-core → .uad-IR）。
+- **uadvm**：獨立的位元碼執行器。
+- **uad-repl**：用於快速實驗風險模型的互動式 Shell。
+- **LSP**：語言伺服器協定實作，提供 IDE 支援（VS Code, Vim）。
+- **Bindings**：Python 與 Go 的封裝，以便將 .uad 邏輯嵌入生產環境系統。
+
+## 8. Security & Ethics / 安全與倫理
+
+#### English
+
+.uad is explicitly intended for defensive, governance, and research applications.
+
+- **Containment**: Adversarial modeling constructs are sandbox-enforced.
+- **Ethics**: The language encourages explicit declaration of ethical weights and vulnerable populations.
+- **Governance**: The project provides templates for Responsible Disclosure and privacy-preserving data ingestion.
+
+#### 中文
+
+.uad 明確定位於 **防禦、治理與研究** 用途。
+
+- **隔離**：對抗式建模構造強制在沙箱中執行。
+- **倫理**：語言設計鼓勵明確宣告倫理權重與易受害群體。
+- **治理**：專案將提供負責任揭露（Responsible Disclosure）與隱私保護資料匯入的範本。
+
+## 9. Roadmap / 發展藍圖
+
+#### English
+
+- **Phase 1 (Short-term)**: Minimal .uad-core interpreter, .uad-IR VM, and DevSecOps ERH examples.
+- **Phase 2 (Mid-term)**: Full compiler pipeline, optimized VM, and expanded .uad-model DSL (finance, healthcare).
+- **Phase 3 (Long-term)**: Formal verification integration, LLVM backend, and a community registry for models.
+
+#### 中文
+
+- **第一階段（短期）**：最小可行 .uad-core 解譯器、.uad-IR VM 與 DevSecOps ERH 範例。
+- **第二階段（中期）**：完整編譯管線、最佳化 VM 與擴充版 .uad-model DSL（涵蓋金融、醫療）。
+- **第三階段（長期）**：整合形式驗證工具、LLVM 後端與社群模型庫（Registry）。
+
+## 10. Conclusion / 結語
+
+#### English
+
+.uad transforms adversarial dynamics and ethical risk from abstract concepts into executable code. By unifying micro-decisions and macro-history in a rigorous stack, it provides the foundation for safer, more predictable AI systems.
+
+#### 中文
+
+.uad 將 **對抗式動態** 與 **倫理風險** 從抽象概念轉化為可執行的程式碼。透過在嚴謹的技術堆疊中統一微觀決策與宏觀歷史，它為更安全、更具可預測性的 AI 系統奠定了基礎。
 .uad Programming Language Whitepaper
 .uad 程式語言白皮書
 Version: 0.1.0-draft
