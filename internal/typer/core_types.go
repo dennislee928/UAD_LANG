@@ -247,8 +247,14 @@ func (a *AliasType) String() string {
 }
 
 func (a *AliasType) Equals(other Type) bool {
-	// Aliases are transparent for type checking
-	return a.AliasedType.Equals(other)
+	// Resolve both sides for comparison
+	left := a.Resolve()
+	
+	if otherAlias, ok := other.(*AliasType); ok {
+		other = otherAlias.Resolve()
+	}
+	
+	return left.Equals(other)
 }
 
 func (a *AliasType) typeNode() {}

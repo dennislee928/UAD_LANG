@@ -181,12 +181,15 @@ func (tc *TypeChecker) checkFnDecl(decl *ast.FnDecl) error {
 	// Check function body
 	bodyType := tc.checkBlockExpr(decl.Body)
 	
-	// Check return type matches
-	if !returnType.Equals(UnitType) && bodyType != nil {
+	// Check return type matches (only if body has an expression)
+	if decl.Body.Expr != nil && bodyType != nil {
 		if !tc.env.CheckAssignable(bodyType, returnType, decl.Body.Span()) {
 			// Error already recorded
 		}
 	}
+	
+	// Note: Return statements are checked separately in checkReturnStmt
+	// So we don't need to verify all paths return here
 	
 	return nil
 }

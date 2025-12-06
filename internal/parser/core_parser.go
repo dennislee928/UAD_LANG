@@ -956,9 +956,46 @@ func (p *Parser) parseMatchExpr() (ast.Expr, error) {
 	start := p.current().Span.Start
 	p.consume(lexer.TokenMatch, "expected 'match'")
 	
-	expr, err := p.parseExpr()
-	if err != nil {
-		return nil, err
+	// Parse the expression being matched
+	// Special handling: parse identifier but don't allow struct literals
+	// because the { is for the match arms
+	var expr ast.Expr
+	var err error
+	
+	if p.check(lexer.TokenIdent) {
+		// Just parse the identifier, don't check for struct literal
+		ident := p.parseIdent()
+		expr = ident
+	} else {
+		// For other expressions (like field access, etc.), use normal parsing
+		// but this should stop before consuming {
+		expr, err = p.parsePrefixExpr()
+		if err != nil {
+			return nil, err
+		}
+		
+		// Parse postfix operations (field access, indexing, etc.)
+		// but not struct literals
+		for p.check(lexer.TokenDot) || p.check(lexer.TokenLBracket) {
+			if p.match(lexer.TokenDot) {
+				field := p.parseIdent()
+				if field == nil {
+					return nil, p.error("expected field name")
+				}
+				fieldEnd := field.Span().End
+				span := common.NewSpan(expr.Span().Start, fieldEnd, p.file)
+				expr = ast.NewFieldAccess(expr, field, span)
+			} else if p.match(lexer.TokenLBracket) {
+				index, err := p.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				p.consume(lexer.TokenRBracket, "expected ']'")
+				end := p.previous().Span.End
+				span := common.NewSpan(expr.Span().Start, end, p.file)
+				expr = ast.NewIndexExpr(expr, index, span)
+			}
+		}
 	}
 	
 	p.consume(lexer.TokenLBrace, "expected '{'")
@@ -973,7 +1010,9 @@ func (p *Parser) parseMatchExpr() (ast.Expr, error) {
 			return nil, err
 		}
 		
-		p.consume(lexer.TokenFatArrow, "expected '=>'")
+		if err := p.consume(lexer.TokenFatArrow, "expected '=>'"); err != nil {
+			return nil, err
+		}
 		
 		armExpr, err := p.parseExpr()
 		if err != nil {
@@ -984,7 +1023,15 @@ func (p *Parser) parseMatchExpr() (ast.Expr, error) {
 		armSpan := common.NewSpan(armStart, armEnd, p.file)
 		arms = append(arms, ast.NewMatchArm(pattern, armExpr, armSpan))
 		
-		p.match(lexer.TokenComma)
+		// Optional trailing comma
+		if !p.match(lexer.TokenComma) {
+			break
+		}
+		
+		// Allow trailing comma before closing brace
+		if p.check(lexer.TokenRBrace) {
+			break
+		}
 	}
 	
 	p.consume(lexer.TokenRBrace, "expected '}'")
@@ -1122,15 +1169,22 @@ func (p *Parser) parsePattern() (ast.Pattern, error) {
 		if p.match(lexer.TokenLParen) {
 			patterns := []ast.Pattern{}
 			
-			for !p.check(lexer.TokenRParen) && !p.isAtEnd() {
-				pattern, err := p.parsePattern()
-				if err != nil {
-					return nil, err
-				}
-				patterns = append(patterns, pattern)
-				
-				if !p.match(lexer.TokenComma) {
-					break
+			// Parse patterns inside parentheses
+			if !p.check(lexer.TokenRParen) {
+				for {
+					pattern, err := p.parsePattern()
+					if err != nil {
+						return nil, err
+					}
+					patterns = append(patterns, pattern)
+					
+					if p.check(lexer.TokenRParen) {
+						break
+					}
+					
+					if !p.match(lexer.TokenComma) {
+						return nil, p.error("expected ',' or ')'")
+					}
 				}
 			}
 			

@@ -221,8 +221,9 @@ func TestTypeChecker_ForLoop(t *testing.T) {
 	source := `
 		fn main() {
 			let arr = [1, 2, 3];
+			let sum = 0;
 			for x in arr {
-				let y = x + 1;
+				sum = sum + x;
 			}
 		}
 	`
