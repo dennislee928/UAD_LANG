@@ -1,0 +1,11 @@
+// Basic arithmetic example
+fn add(x: Int, y: Int) -> Int {
+  return x + y;
+}
+
+fn main() {
+  let result = add(10, 20);
+  print("Result: ");
+  print(result);
+}
+

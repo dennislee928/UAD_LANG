@@ -14,7 +14,7 @@ const (
 	LogDebug LogLevel = iota
 	LogInfo
 	LogWarn
-	LogError
+	LogErrorLevel
 )
 
 // String returns the string representation of LogLevel
@@ -26,7 +26,7 @@ func (l LogLevel) String() string {
 		return "INFO"
 	case LogWarn:
 		return "WARN"
-	case LogError:
+	case LogErrorLevel:
 		return "ERROR"
 	default:
 		return "UNKNOWN"
@@ -108,7 +108,7 @@ func (l *Logger) Warn(format string, args ...interface{}) {
 
 // Error logs an error message
 func (l *Logger) Error(format string, args ...interface{}) {
-	l.log(LogError, format, args...)
+	l.log(LogErrorLevel, format, args...)
 }
 
 // Global default logger
@@ -144,8 +144,8 @@ func Warn(format string, args ...interface{}) {
 	defaultLogger.Warn(format, args...)
 }
 
-// Error logs an error message using the default logger
-func Error(format string, args ...interface{}) {
+// ErrorLog logs an error message using the default logger
+func ErrorLog(format string, args ...interface{}) {
 	defaultLogger.Error(format, args...)
 }
 

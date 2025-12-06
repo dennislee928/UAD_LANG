@@ -482,7 +482,12 @@ func (l *Lexer) lexOperator(startPos common.Position) Token {
 
 // currentPosition returns the current position in the source
 func (l *Lexer) currentPosition() common.Position {
-	return common.NewPosition(l.line, l.column, l.offset-l.chSize)
+	// Subtract 1 from column because we've already advanced
+	col := l.column - 1
+	if col < 1 {
+		col = 1
+	}
+	return common.NewPosition(l.line, col, l.offset-l.chSize)
 }
 
 // makeToken creates a token with the given type and lexeme

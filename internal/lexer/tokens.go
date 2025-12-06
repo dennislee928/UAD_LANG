@@ -32,13 +32,13 @@ const (
 	TokenContinue // continue
 
 	// Keywords - Declarations
-	TokenLet    // let
-	TokenStruct // struct
-	TokenEnum   // enum
-	TokenType   // type
-	TokenImport // import
-	TokenModule // module
-	TokenPub    // pub
+	TokenLet       // let
+	TokenStruct    // struct
+	TokenEnum      // enum
+	TokenTypeDecl  // type
+	TokenImport    // import
+	TokenModule    // module
+	TokenPub       // pub
 
 	// Keywords - Literals
 	TokenTrue  // true
@@ -168,7 +168,7 @@ func (t TokenType) String() string {
 		return "struct"
 	case TokenEnum:
 		return "enum"
-	case TokenType:
+	case TokenTypeDecl:
 		return "type"
 	case TokenImport:
 		return "import"
@@ -299,7 +299,7 @@ var keywords = map[string]TokenType{
 	"let":              TokenLet,
 	"struct":           TokenStruct,
 	"enum":             TokenEnum,
-	"type":             TokenType,
+	"type":             TokenTypeDecl,
 	"import":           TokenImport,
 	"module":           TokenModule,
 	"pub":              TokenPub,

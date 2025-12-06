@@ -11,7 +11,7 @@ func TestLexer_Keywords(t *testing.T) {
 	
 	expected := []TokenType{
 		TokenFn, TokenLet, TokenIf, TokenElse, TokenReturn, TokenWhile, TokenFor,
-		TokenBreak, TokenContinue, TokenStruct, TokenEnum, TokenType, TokenImport,
+		TokenBreak, TokenContinue, TokenStruct, TokenEnum, TokenTypeDecl, TokenImport,
 		TokenModule, TokenPub, TokenTrue, TokenFalse, TokenNil, TokenMatch,
 		TokenCase, TokenWhen, TokenIn, TokenAction, TokenJudge, TokenAgent,
 		TokenEvent, TokenEmit, TokenActionClass, TokenErhProfile, TokenScenario,
