@@ -336,35 +336,39 @@ fn is_mistake(a: Action, j: Judge, threshold: Float) -> Bool {
 
 以運算式為中心：函式回傳值，if 與 match 皆為運算式。  
 副作用（logging、事件送出）以明確語法呈現，以利分析與驗證。
-5. .uad-IR & VM / .uad-IR 與虛擬機
-5.1 Design Goals / 設計目標
-English
-The .uad-IR and its VM are designed to be:
-Deterministic: same input → same trace, crucial for reproducible analysis.
-Verifiable: type-annotated instructions enable static checks.
-Sandboxable: no direct OS / network calls; all side effects are brokered through controlled APIs.
-中文
-.uad-IR 與其 VM 的設計目標為：
-決定論：相同輸入必然產生相同執行軌跡，利於重現分析。
-可驗證：指令帶有型別資訊，可在靜態階段檢查。
-可沙箱：不直接呼叫 OS / 網路，所有副作用皆透過受控 API 進行。
-5.2 Instruction Set Sketch / 指令集概觀（摘要）
-English (conceptual)
-Arithmetic: ADD, SUB, MUL, DIV
-Logic & compare: AND, OR, NOT, LT, GT, EQ
-Control flow: JMP, JMP_IF, CALL, RET
-Memory: LOAD, STORE, ALLOC, FREE
-Domain-specific:
-EMIT_EVENT, RECORD_MISTAKE, RECORD_PRIME
-SAMPLE_RNG, UPDATE_MACROSTATE
-中文（概念）
-算術：ADD, SUB, MUL, DIV
-邏輯與比較：AND, OR, NOT, LT, GT, EQ
-控制流程：JMP, JMP_IF, CALL, RET
-記憶體：LOAD, STORE, ALLOC, FREE
-領域指令：
-EMIT_EVENT, RECORD_MISTAKE, RECORD_PRIME
-SAMPLE_RNG, UPDATE_MACROSTATE
+## 5. .uad-IR & VM / .uad-IR 與虛擬機
+
+### 5.1 Design Goals / 設計目標
+
+#### English
+
+- **Deterministic**: Same input + seed → Same trace.
+- **Verifiable**: Bytecode includes type annotations for static safety checks before execution.
+- **Sandboxable**: No direct OS access. IO is handled via a capability-based system.
+
+#### 中文
+
+- **決定論**：相同的輸入 + 種子碼 → 相同的執行軌跡。
+- **可驗證**：位元碼包含型別註記，執行前可進行靜態安全檢查。
+- **可沙箱化**：無直接 OS 存取權。IO 操作透過基於能力（Capability-based）的系統處理。
+
+### 5.2 Instruction Set Sketch / 指令集概觀
+
+#### English
+
+- **Arithmetic**: ADD, SUB, MUL, DIV
+- **Logic & compare**: AND, OR, NOT, LT, GT, EQ
+- **Control flow**: JMP, JMP_IF, CALL, RET
+- **Memory**: LOAD, STORE, ALLOC, FREE
+- **Domain-specific**: EMIT_EVENT, RECORD_MISTAKE, RECORD_PRIME, SAMPLE_RNG, UPDATE_MACROSTATE
+
+#### 中文
+
+- **算術**：ADD, SUB, MUL, DIV
+- **邏輯與比較**：AND, OR, NOT, LT, GT, EQ
+- **控制流程**：JMP, JMP_IF, CALL, RET
+- **記憶體**：LOAD, STORE, ALLOC, FREE
+- **領域指令**：EMIT_EVENT, RECORD_MISTAKE, RECORD_PRIME, SAMPLE_RNG, UPDATE_MACROSTATE
 6. .uad-model DSL / .uad-model 建模 DSL
 6.1 ERH Profiles / ERH Profile 建模
 English
