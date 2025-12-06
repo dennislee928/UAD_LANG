@@ -1,26 +1,50 @@
-.uad Programming Language Whitepaper
-.uad 程式語言白皮書
-0. Abstract / 摘要
+# .uad Programming Language Whitepaper
+# .uad 程式語言白皮書
 
-# .uad Language
+**Version:** 0.1.0-draft  
+**Status:** Request for Comment (RFC)
 
-.uad is a three-layer language stack for modeling adversarial dynamics,
-ethical risk, and cognitive security systems.
+## 0. Abstract / 摘要
 
-- `.uad-core`   – strongly-typed core language
-- `.uad-model`  – declarative DSL for ERH profiles, cyber range scenarios,
-                  cognitive SIEM rules
-- `.uad-IR`     – typed intermediate representation executed by a small VM
+### English
 
-## Repo layout
+.uad is a domain-specific programming language designed to model adversarial dynamics, ethical risk, and cognitive security systems.
 
-- `cmd/uadc`   – compiler CLI
-- `cmd/uadvm`  – VM runner CLI
-- `internal/*` – lexer, parser, typer, IR, VM, model desugaring
-- `docs/*`     – whitepaper, language specs
-- `examples/*` – sample .uad / .uadmodel programs
+Unlike general-purpose languages optimized for arbitrary computation, .uad treats decisions and risks as first-class citizens. It is engineered to:
 
-## Quick start
+- **Formalize Decision Events**: Represent AI judgments, SOC triage actions, and security approvals alongside their ethical and economic weight.
+- **Encode Adversarial Logic**: Define attackers, red-team agents, and counterfactual scenarios within a unified type system.
+- **Simulate Macro-Dynamics**: Model long-term system behavior using Psychohistory-style population mechanics and Ethical Riemann Hypothesis (ERH) structural analysis.
+
+The language is architected as a three-layer stack:
+
+- **Low-level (.uad-IR)**: A verifiable intermediate representation and virtual machine (VM) ensuring deterministic, sandboxable execution.
+- **Mid-level (.uad-core)**: A strongly-typed, expression-oriented language providing the primitives for time, probability, and agency.
+- **High-level (.uad-model)**: A declarative domain-specific language (DSL) for defining ERH profiles, Cyber Range scenarios, and Cognitive SIEM logic.
+
+This whitepaper outlines the motivation, design philosophy, type system, and roadmap of .uad, positioning it as a foundational tool for next-generation AI governance and security engineering.
+
+### 中文
+
+.uad 是一門專注於 **對抗式動態（Adversarial Dynamics）、倫理風險** 與 **認知型安全系統** 的領域專用語言（DSL）。
+
+相較於以「通用計算」為目標的傳統語言，.uad 將 **決策** 與 **風險** 視為語言的一級公民（First-class citizens）。其設計目的在於：
+
+- **形式化決策事件**：精準表達 AI 判斷、SOC 分級決策與安全核准，並包含其倫理與經濟權重。
+- **編碼對抗邏輯**：在統一的型別系統中，定義攻擊者、紅隊代理人與反事實情境。
+- **模擬宏觀動態**：結合 **心理史學（Psychohistory）** 風格的群體機制 與 Ethical Riemann Hypothesis (ERH) 結構分析，模擬系統的長期行為。
+
+.uad 的架構分為三層：
+
+- **低階層 (.uad-IR)**：可驗證的中介表示與虛擬機（VM），確保執行過程具備決定論特性與沙箱安全性。
+- **中階層 (.uad-core)**：強型別、以運算式為核心的語言，提供時間、機率與代理人（Agency）的原語。
+- **高階層 (.uad-model)**：宣告式 DSL，專用於定義 ERH Profile、Cyber Range 演練場景與認知型 SIEM 邏輯。
+
+本白皮書將闡述 .uad 的設計動機、哲學、型別系統與發展藍圖，將其定位為新世代 AI 治理與資安工程的基礎工具。
+
+---
+
+## Quick Start
 
 ```bash
 git clone https://github.com/yourname/uad-lang.git
@@ -33,29 +57,15 @@ make build
 # run a core example (to be implemented)
 ./bin/uadc examples/core/hello_world.uad -o out.uadir
 ./bin/uadvm out.uadir
+```
 
-English
-.uad is a domain-focused programming language for modeling adversarial dynamics, ethical risk, and cognitive security systems.
-Unlike general-purpose languages that optimize for arbitrary computation, .uad is designed to:
-Represent decision events (e.g., AI judgments, SOC triage, security approvals) and their ethical/economic impact.
-Encode adversarial processes (attackers, red-team agents, counterfactuals) and defensive cognition (cognitive SIEM, AI-assisted SOC).
-Simulate macro-level dynamics over time, inspired by psychohistory-style population modeling and Ethical Riemann Hypothesis (ERH)-like structural analysis.
-.uad is defined as a three-layer stack:
-Low-level: .uad-IR – a verifiable intermediate representation and virtual machine (VM) for deterministic, analyzable execution.
-Mid-level: .uad-core – a strongly-typed core language with functions, structs, and time/uncertainty primitives.
-High-level: .uad-model – a declarative modeling layer for ERH profiles, adversarial cyber range scenarios, and cognitive SIEM rules.
-This whitepaper presents the motivation, language design, type system, execution model, and roadmap of .uad as a research and engineering tool for next-generation AI security and ethical systems.
-中文
-.uad 是一門專注於 對抗式動態、倫理風險 與 認知型安全系統 的領域導向程式語言。
-相較於以「通用計算能力」為目標的傳統語言，.uad 的設計目的在於：
-精準表達各種 決策事件（例如 AI 判斷、SOC 分級決策、安全核准），以及其倫理與經濟影響。
-編碼 對抗性過程（攻擊者、紅隊代理人、反事實情境）與 防禦認知（認知型 SIEM、AI 協助 SOC）。
-以 心理史學（psychohistory）風格的群體建模 搭配 類 Ethical Riemann Hypothesis（ERH）之結構分析，模擬長期的巨觀動態。
-.uad 定義為三層語言堆疊：
-低階層：.uad-IR – 可驗證的中介表示與虛擬機（VM），提供決定論、可分析的執行基礎。
-中階層：.uad-core – 具強型別系統的核心語言，提供函式、結構與內建時間／不確定性原語。
-高階層：.uad-model – 宣告式建模層，用於撰寫 ERH profile、對抗式 Cyber Range 情境與認知型 SIEM 規則。
-本白皮書將說明 .uad 的設計動機、語言結構、型別與語意、執行模型與未來規劃，將其定位為新世代 AI 安全與倫理系統的研究與工程工具。
+## Repository Layout
+
+- `cmd/uadc`   – compiler CLI
+- `cmd/uadvm`  – VM runner CLI
+- `internal/*` – lexer, parser, typer, IR, VM, model desugaring
+- `docs/*`     – whitepaper, language specs
+- `examples/*` – sample .uad / .uadmodel programs
 1. Motivation / 動機
 1.1 Problem Statement / 問題描述
 English
