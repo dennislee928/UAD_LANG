@@ -4,39 +4,53 @@ import (
 	"github.com/dennislee928/uad-lang/internal/common"
 )
 
-// Node is the base interface for all AST nodes
+// Node is the base interface for all AST nodes.
+// All AST nodes must implement this interface to provide source location information
+// and prevent external implementation.
 type Node interface {
-	Span() common.Span
-	node() // Private method to prevent external implementation
+	Span() common.Span // Returns the source location span of this node
+	node()             // Private marker method to seal the interface
 }
 
 // ==================== Base Types ====================
 
-// baseNode provides common functionality for all nodes
+// baseNode provides common functionality for all AST nodes.
+// It embeds source span information that tracks the location of the node in the source code.
+// This is crucial for error reporting and source mapping.
 type baseNode struct {
-	span common.Span
+	span common.Span // Source location span (file, start line/col, end line/col)
 }
 
+// Span returns the source location span of this node.
 func (n *baseNode) Span() common.Span { return n.span }
-func (n *baseNode) node()             {}
+
+// node is a marker method that makes this node implement the Node interface.
+func (n *baseNode) node() {}
 
 // ==================== Expressions ====================
 
-// Expr represents an expression node
+// Expr represents an expression node in the AST.
+// Expressions are constructs that evaluate to a value.
+// In UAD, expressions are first-class and can appear in various contexts.
 type Expr interface {
 	Node
-	exprNode()
+	exprNode() // Marker method to distinguish expressions from other node types
 }
 
-// Ident represents an identifier
+// Ident represents an identifier (variable name, function name, type name, etc.).
+// Identifiers are the primary way to refer to named entities in UAD.
+// Examples: `x`, `myFunc`, `UserAction`, `calculate_alpha`
 type Ident struct {
 	baseNode
-	Name string
+	Name string // The identifier name (must follow [A-Za-z_][A-Za-z0-9_]*)
 }
 
 func (i *Ident) exprNode() {}
 
-// NewIdent creates a new identifier
+// NewIdent creates a new identifier node.
+// Parameters:
+//   - name: The identifier name
+//   - span: Source location information
 func NewIdent(name string, span common.Span) *Ident {
 	return &Ident{
 		baseNode: baseNode{span},
@@ -44,28 +58,36 @@ func NewIdent(name string, span common.Span) *Ident {
 	}
 }
 
-// LiteralKind represents the kind of a literal
+// LiteralKind represents the kind of a literal value.
+// UAD supports various literal types including domain-specific types like Duration.
 type LiteralKind int
 
 const (
-	LitInt LiteralKind = iota
-	LitFloat
-	LitString
-	LitBool
-	LitDuration
-	LitNil
+	LitInt      LiteralKind = iota // Integer literal (e.g., 42, 0xFF, 0b1010)
+	LitFloat                       // Floating-point literal (e.g., 3.14, 1.5e-10)
+	LitString                      // String literal (e.g., "hello", "foo\nbar")
+	LitBool                        // Boolean literal (true or false)
+	LitDuration                    // Duration literal (e.g., 10s, 5m, 90d)
+	LitNil                         // Nil literal (represents absence of value)
 )
 
-// Literal represents a literal value
+// Literal represents a literal value in the source code.
+// Literals are constant values that appear directly in the code.
+// The Value field stores the string representation which is later converted
+// to the appropriate runtime type during interpretation/compilation.
 type Literal struct {
 	baseNode
-	Kind  LiteralKind
-	Value string // String representation of the value
+	Kind  LiteralKind // The kind of literal
+	Value string      // String representation of the value
 }
 
 func (l *Literal) exprNode() {}
 
-// NewLiteral creates a new literal
+// NewLiteral creates a new literal node.
+// Parameters:
+//   - kind: The type of literal (int, float, string, etc.)
+//   - value: String representation of the literal value
+//   - span: Source location information
 func NewLiteral(kind LiteralKind, value string, span common.Span) *Literal {
 	return &Literal{
 		baseNode: baseNode{span},
@@ -74,41 +96,49 @@ func NewLiteral(kind LiteralKind, value string, span common.Span) *Literal {
 	}
 }
 
-// BinaryOp represents a binary operator
+// BinaryOp represents a binary operator.
+// Binary operators take two operands and produce a result.
 type BinaryOp int
 
 const (
-	// Arithmetic
-	OpAdd BinaryOp = iota
-	OpSub
-	OpMul
-	OpDiv
-	OpMod
-	
-	// Comparison
-	OpEq
-	OpNeq
-	OpLt
-	OpGt
-	OpLe
-	OpGe
-	
-	// Logical
-	OpAnd
-	OpOr
+	// Arithmetic operators
+	OpAdd BinaryOp = iota // + (addition)
+	OpSub                 // - (subtraction)
+	OpMul                 // * (multiplication)
+	OpDiv                 // / (division)
+	OpMod                 // % (modulo)
+
+	// Comparison operators (return Bool)
+	OpEq  // == (equality)
+	OpNeq // != (inequality)
+	OpLt  // < (less than)
+	OpGt  // > (greater than)
+	OpLe  // <= (less than or equal)
+	OpGe  // >= (greater than or equal)
+
+	// Logical operators (operate on Bool, return Bool)
+	OpAnd // && (logical AND)
+	OpOr  // || (logical OR)
 )
 
-// BinaryExpr represents a binary expression
+// BinaryExpr represents a binary expression (e.g., `a + b`, `x == y`).
+// Binary expressions consist of a left operand, an operator, and a right operand.
+// They follow standard precedence rules defined in the language specification.
 type BinaryExpr struct {
 	baseNode
-	Op    BinaryOp
-	Left  Expr
-	Right Expr
+	Op    BinaryOp // The binary operator
+	Left  Expr     // Left operand expression
+	Right Expr     // Right operand expression
 }
 
 func (b *BinaryExpr) exprNode() {}
 
-// NewBinaryExpr creates a new binary expression
+// NewBinaryExpr creates a new binary expression node.
+// Parameters:
+//   - op: The binary operator
+//   - left: Left operand expression
+//   - right: Right operand expression
+//   - span: Source location (should cover the entire expression)
 func NewBinaryExpr(op BinaryOp, left, right Expr, span common.Span) *BinaryExpr {
 	return &BinaryExpr{
 		baseNode: baseNode{span},
@@ -144,16 +174,22 @@ func NewUnaryExpr(op UnaryOp, expr Expr, span common.Span) *UnaryExpr {
 	}
 }
 
-// CallExpr represents a function call
+// CallExpr represents a function call expression (e.g., `foo(a, b, c)`).
+// In UAD, functions are first-class values, so the Func field can be
+// any expression that evaluates to a function (identifier, field access, etc.).
 type CallExpr struct {
 	baseNode
-	Func Expr
-	Args []Expr
+	Func Expr   // Function expression to call
+	Args []Expr // Argument expressions (evaluated left-to-right)
 }
 
 func (c *CallExpr) exprNode() {}
 
-// NewCallExpr creates a new call expression
+// NewCallExpr creates a new function call expression.
+// Parameters:
+//   - fn: Expression that evaluates to a function
+//   - args: List of argument expressions
+//   - span: Source location (from function name to closing paren)
 func NewCallExpr(fn Expr, args []Expr, span common.Span) *CallExpr {
 	return &CallExpr{
 		baseNode: baseNode{span},
@@ -162,17 +198,24 @@ func NewCallExpr(fn Expr, args []Expr, span common.Span) *CallExpr {
 	}
 }
 
-// IfExpr represents an if expression
+// IfExpr represents an if expression (e.g., `if x > 0 { 1 } else { -1 }`).
+// In UAD, if is an expression that returns a value, not just a control flow statement.
+// Both branches must have compatible types for the expression to be well-typed.
 type IfExpr struct {
 	baseNode
-	Cond Expr
-	Then *BlockExpr
-	Else Expr // Can be nil, IfExpr, or BlockExpr
+	Cond Expr       // Condition expression (must evaluate to Bool)
+	Then *BlockExpr // Then-branch (executed if condition is true)
+	Else Expr       // Else-branch (can be nil, another IfExpr for else-if, or BlockExpr)
 }
 
 func (i *IfExpr) exprNode() {}
 
-// NewIfExpr creates a new if expression
+// NewIfExpr creates a new if expression.
+// Parameters:
+//   - cond: Condition expression (must be Bool type)
+//   - then: Block to execute when condition is true
+//   - els: Else branch (can be nil, another IfExpr, or BlockExpr)
+//   - span: Source location (from 'if' keyword to end of else branch)
 func NewIfExpr(cond Expr, then *BlockExpr, els Expr, span common.Span) *IfExpr {
 	return &IfExpr{
 		baseNode: baseNode{span},
@@ -182,23 +225,38 @@ func NewIfExpr(cond Expr, then *BlockExpr, els Expr, span common.Span) *IfExpr {
 	}
 }
 
-// MatchExpr represents a match expression
+// MatchExpr represents a pattern matching expression (e.g., `match x { ... }`).
+// Pattern matching is a powerful control flow mechanism that destructures values
+// and binds variables. All match arms must be exhaustive and have compatible types.
+// Example:
+//
+//	match result {
+//	  Ok(value) => value,
+//	  Err(msg) => 0,
+//	}
 type MatchExpr struct {
 	baseNode
-	Expr Expr
-	Arms []*MatchArm
+	Expr Expr        // Expression to match against
+	Arms []*MatchArm // Match arms (patterns and their corresponding expressions)
 }
 
 func (m *MatchExpr) exprNode() {}
 
-// MatchArm represents a match arm
+// MatchArm represents a single arm of a match expression.
+// Each arm consists of a pattern to match and an expression to evaluate
+// if the pattern matches. Variables bound in the pattern are in scope for the expression.
 type MatchArm struct {
 	baseNode
-	Pattern Pattern
-	Expr    Expr
+	Pattern Pattern // Pattern to match (literal, variable, struct, enum, wildcard)
+	Expr    Expr    // Expression to evaluate if pattern matches
 }
 
-// NewMatchExpr creates a new match expression
+// NewMatchExpr creates a new match expression.
+// The type checker will verify exhaustiveness of patterns.
+// Parameters:
+//   - expr: Expression whose value will be matched
+//   - arms: List of match arms (must be exhaustive)
+//   - span: Source location (from 'match' keyword to closing brace)
 func NewMatchExpr(expr Expr, arms []*MatchArm, span common.Span) *MatchExpr {
 	return &MatchExpr{
 		baseNode: baseNode{span},
@@ -207,7 +265,11 @@ func NewMatchExpr(expr Expr, arms []*MatchArm, span common.Span) *MatchExpr {
 	}
 }
 
-// NewMatchArm creates a new match arm
+// NewMatchArm creates a new match arm.
+// Parameters:
+//   - pattern: Pattern to match against
+//   - expr: Expression to evaluate when pattern matches
+//   - span: Source location (from pattern to end of expression)
 func NewMatchArm(pattern Pattern, expr Expr, span common.Span) *MatchArm {
 	return &MatchArm{
 		baseNode: baseNode{span},
@@ -620,31 +682,45 @@ func NewContinueStmt(span common.Span) *ContinueStmt {
 
 // ==================== Declarations ====================
 
-// Decl represents a declaration node
+// Decl represents a declaration node (top-level or module-level constructs).
+// Declarations introduce new names into the current scope (functions, types, etc.).
 type Decl interface {
 	Node
-	declNode()
+	declNode() // Marker method to distinguish declarations from other node types
 }
 
-// FnDecl represents a function declaration
+// FnDecl represents a function declaration (e.g., `fn add(x: Int, y: Int) -> Int { x + y }`).
+// Functions are first-class values in UAD and can be passed as arguments or returned.
+// Example:
+//
+//	fn factorial(n: Int) -> Int {
+//	  if n <= 1 { 1 } else { n * factorial(n - 1) }
+//	}
 type FnDecl struct {
 	baseNode
-	Name       *Ident
-	Params     []*Param
-	ReturnType TypeExpr // Can be nil
-	Body       *BlockExpr
+	Name       *Ident      // Function name
+	Params     []*Param    // Function parameters
+	ReturnType TypeExpr    // Return type (can be nil for type inference)
+	Body       *BlockExpr  // Function body
 }
 
 func (f *FnDecl) declNode() {}
 
-// Param represents a function parameter
+// Param represents a function parameter.
+// Parameters have a name and a type, and are in scope within the function body.
 type Param struct {
 	baseNode
-	Name     *Ident
-	TypeExpr TypeExpr
+	Name     *Ident   // Parameter name
+	TypeExpr TypeExpr // Parameter type
 }
 
-// NewFnDecl creates a new function declaration
+// NewFnDecl creates a new function declaration.
+// Parameters:
+//   - name: Function name identifier
+//   - params: List of function parameters
+//   - returnType: Return type expression (can be nil for unit type or inference)
+//   - body: Function body block
+//   - span: Source location (from 'fn' keyword to closing brace)
 func NewFnDecl(name *Ident, params []*Param, returnType TypeExpr, body *BlockExpr, span common.Span) *FnDecl {
 	return &FnDecl{
 		baseNode:   baseNode{span},
@@ -655,7 +731,11 @@ func NewFnDecl(name *Ident, params []*Param, returnType TypeExpr, body *BlockExp
 	}
 }
 
-// NewParam creates a new parameter
+// NewParam creates a new function parameter.
+// Parameters:
+//   - name: Parameter name
+//   - typeExpr: Parameter type expression
+//   - span: Source location
 func NewParam(name *Ident, typeExpr TypeExpr, span common.Span) *Param {
 	return &Param{
 		baseNode: baseNode{span},
@@ -664,23 +744,37 @@ func NewParam(name *Ident, typeExpr TypeExpr, span common.Span) *Param {
 	}
 }
 
-// StructDecl represents a struct declaration
+// StructDecl represents a struct (product type) declaration.
+// Structs are composite types that group named fields together.
+// They are used extensively in UAD for domain modeling (Action, Judge, Agent).
+// Example:
+//
+//	struct Action {
+//	  id: String,
+//	  complexity: Float,
+//	  importance: Float,
+//	}
 type StructDecl struct {
 	baseNode
-	Name   *Ident
-	Fields []*Field
+	Name   *Ident   // Struct name (must be unique in the scope)
+	Fields []*Field // Struct fields (order matters)
 }
 
 func (s *StructDecl) declNode() {}
 
-// Field represents a struct field
+// Field represents a named field in a struct.
+// Fields have a name and a type, and are accessed via dot notation (e.g., `action.id`).
 type Field struct {
 	baseNode
-	Name     *Ident
-	TypeExpr TypeExpr
+	Name     *Ident   // Field name
+	TypeExpr TypeExpr // Field type
 }
 
-// NewStructDecl creates a new struct declaration
+// NewStructDecl creates a new struct declaration.
+// Parameters:
+//   - name: Struct name
+//   - fields: List of struct fields
+//   - span: Source location (from 'struct' keyword to closing brace)
 func NewStructDecl(name *Ident, fields []*Field, span common.Span) *StructDecl {
 	return &StructDecl{
 		baseNode: baseNode{span},
@@ -689,7 +783,11 @@ func NewStructDecl(name *Ident, fields []*Field, span common.Span) *StructDecl {
 	}
 }
 
-// NewField creates a new field
+// NewField creates a new struct field.
+// Parameters:
+//   - name: Field name
+//   - typeExpr: Field type expression
+//   - span: Source location
 func NewField(name *Ident, typeExpr TypeExpr, span common.Span) *Field {
 	return &Field{
 		baseNode: baseNode{span},
@@ -698,23 +796,37 @@ func NewField(name *Ident, typeExpr TypeExpr, span common.Span) *Field {
 	}
 }
 
-// EnumDecl represents an enum declaration
+// EnumDecl represents an enum (sum type) declaration.
+// Enums represent a value that can be one of several variants.
+// Variants can carry associated data (similar to Rust enums or algebraic data types).
+// Example:
+//
+//	enum Result {
+//	  Ok(Int),           // Variant with one associated value
+//	  Err(String),       // Variant with one associated value
+//	}
 type EnumDecl struct {
 	baseNode
-	Name     *Ident
-	Variants []*Variant
+	Name     *Ident     // Enum name
+	Variants []*Variant // Enum variants (must have at least one)
 }
 
 func (e *EnumDecl) declNode() {}
 
-// Variant represents an enum variant
+// Variant represents a single variant of an enum.
+// Variants can optionally carry associated data (tuple-like).
+// Examples: `Ok(Int)`, `Err(String)`, `None` (no associated data)
 type Variant struct {
 	baseNode
-	Name  *Ident
-	Types []TypeExpr // Associated data types
+	Name  *Ident     // Variant name
+	Types []TypeExpr // Associated data types (can be empty for simple variants)
 }
 
-// NewEnumDecl creates a new enum declaration
+// NewEnumDecl creates a new enum declaration.
+// Parameters:
+//   - name: Enum name
+//   - variants: List of enum variants (must be non-empty)
+//   - span: Source location (from 'enum' keyword to closing brace)
 func NewEnumDecl(name *Ident, variants []*Variant, span common.Span) *EnumDecl {
 	return &EnumDecl{
 		baseNode: baseNode{span},
@@ -723,7 +835,11 @@ func NewEnumDecl(name *Ident, variants []*Variant, span common.Span) *EnumDecl {
 	}
 }
 
-// NewVariant creates a new variant
+// NewVariant creates a new enum variant.
+// Parameters:
+//   - name: Variant name
+//   - types: Associated data types (can be empty)
+//   - span: Source location
 func NewVariant(name *Ident, types []TypeExpr, span common.Span) *Variant {
 	return &Variant{
 		baseNode: baseNode{span},
