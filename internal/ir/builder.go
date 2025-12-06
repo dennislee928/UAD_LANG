@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/dennislee928/uad-lang/internal/ast"
-	"github.com/dennislee928/uad-lang/internal/common"
 	"github.com/dennislee928/uad-lang/internal/typer"
 )
 
