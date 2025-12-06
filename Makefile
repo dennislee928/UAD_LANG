@@ -5,6 +5,7 @@ BINARY_DIR := bin
 UADC := $(BINARY_DIR)/uadc
 UADVM := $(BINARY_DIR)/uadvm
 UADREPL := $(BINARY_DIR)/uadrepl
+UADI := $(BINARY_DIR)/uadi
 
 GO := go
 GOFLAGS := -v
@@ -14,7 +15,7 @@ LDFLAGS := -s -w
 all: build
 
 # Build all binaries
-build: $(UADC) $(UADVM) $(UADREPL)
+build: $(UADC) $(UADVM) $(UADREPL) $(UADI)
 
 # Build compiler
 $(UADC): 
@@ -33,6 +34,12 @@ $(UADREPL):
 	@echo "Building uadrepl..."
 	@mkdir -p $(BINARY_DIR)
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADREPL) ./cmd/uadrepl
+
+# Build Interpreter
+$(UADI):
+	@echo "Building uadi (interpreter)..."
+	@mkdir -p $(BINARY_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADI) ./cmd/uadi
 
 # Run tests
 test:

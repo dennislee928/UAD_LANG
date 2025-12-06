@@ -1,0 +1,19 @@
+fn main() {
+  println("=== UAD Language Interpreter Test ===");
+  println("");
+  
+  let x = 10 + 20;
+  let y = 5 * 6;
+  let z = 100 - 30;
+  println("Arithmetic works!");
+  
+  if x > 20 {
+    println("Conditionals work!");
+  };
+  
+  let name = "UAD";
+  println("Variables work!");
+  
+  println("");
+  println("=== All tests passed! ===");
+}

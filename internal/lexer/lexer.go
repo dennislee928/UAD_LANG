@@ -360,9 +360,11 @@ func (l *Lexer) lexString(startPos common.Position) Token {
 		return l.makeToken(TokenIllegal, l.source[start:l.offset], startPos, l.currentPosition())
 	}
 	
+	// Include the closing quote in the lexeme
+	endOffset := l.offset
 	l.readChar() // Skip closing quote
 	
-	lexeme := l.source[start:l.offset]
+	lexeme := l.source[start:endOffset]
 	return l.makeToken(TokenString, lexeme, startPos, l.currentPosition())
 }
 

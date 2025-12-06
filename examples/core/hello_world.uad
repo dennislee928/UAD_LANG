@@ -1,5 +1,4 @@
 // Hello World example in .uad-core
 fn main() {
-  print("Hello, .uad!");
+  println("Hello, .uad!");
 }
-
