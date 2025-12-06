@@ -66,53 +66,81 @@ make build
 - `internal/*` – lexer, parser, typer, IR, VM, model desugaring
 - `docs/*`     – whitepaper, language specs
 - `examples/*` – sample .uad / .uadmodel programs
-1. Motivation / 動機
-1.1 Problem Statement / 問題描述
-English
-Modern AI and cyber defense systems face three intertwined challenges:
-Adversarial Behavior
-ML models are vulnerable to adversarial examples, data poisoning, and model theft.
-Security infrastructures face adaptive human attackers and automated red teams.
-Ethical & Structural Risk
-Small local errors can accumulate into catastrophic global failures.
-We lack languages that can express structure-level error growth, not just pointwise accuracy.
-Complex, Cognitive SOC Workflows
-SIEM / SOC operations involve human analysts + AI tools + playbooks, all interacting over time.
-There is no unified way to model human–AI collaboration, alert fatigue, or macro-level defense dynamics.
-Existing tools (Python, YAML configs, SIEM rule DSLs, individual ML frameworks) are powerful but fragmented. They are not designed to:
-Treat decisions as first-class objects with ethical weight and structural effects.
-Encode adversarial and defensive agents in the same formal system.
-Simulate macro-dynamics of risk and defenses over weeks, months, or years.
-.uad is proposed as a unified language to close this gap.
-中文
-現代 AI 與資安防禦系統，同時面臨三個交織的難題：
-對抗式行為
-機器學習模型易受對抗樣本、資料汙染與模型竊取等攻擊。
-資安基礎設施則面對高適應性的攻擊者與自動化紅隊。
-倫理與結構性風險
-局部的小錯誤可能累積為系統級的災難性失敗。
-我們缺乏可表達「結構層級錯誤成長」的語言，而不只是點狀的準確率。
-複雜且具認知特性的 SOC 工作流程
-SIEM / SOC 營運牽涉人類分析師、AI 工具與一連串 Playbook，在時間中互相影響。
-目前沒有一套統一的建模方式，可以形式化描述 人機協作、警報疲勞與長期防禦動態。
-現有工具（Python、YAML 設定、SIEM 規則 DSL、各種 ML framework）各自強大，卻彼此割裂。它們並未設計來：
-把 決策 當作具倫理權重與結構影響的一級公民。
-在同一形式系統中，同時編碼 攻擊與防禦的代理人。
-模擬以週、月、年為尺度的 風險與防禦之巨觀動態。
-.uad 被提出，即是為了填補這個缺口。
-1.2 Goals / 目標
-English
+## 1. Motivation / 動機
+
+### 1.1 Problem Statement / 問題描述
+
+#### English
+
+Modern AI and cyber defense systems face three intertwined challenges that existing tools fail to address holistically:
+
+**Adversarial Asymmetry:**
+- ML models are vulnerable to data poisoning and evasion attacks.
+- Security infrastructures must defend against adaptive, intelligent agents, yet configuration tools are static.
+
+**Structural Ethical Risk:**
+- Micro-level errors (a single bad alert) accumulate into macro-level failures (alert fatigue, bias amplification).
+- We lack languages to express structural error growth (α) effectively; current metrics are merely pointwise.
+
+**Cognitive Complexity in SOCs:**
+- Security Operations Centers (SOCs) involve a complex interplay of human analysts, AI assistants, and automated playbooks.
+- There is no unified formalism to model human–AI collaboration, cognitive load, and defense degradation over time.
+
+Current ecosystems (Python scripts, YAML configs, proprietary SIEM rules) are fragmented. They cannot model "a decision and its future consequence" as a single computational unit.
+
+#### 中文
+
+現代 AI 與資安防禦系統面臨三大交織的挑戰，而現有工具無法從整體層面解決這些問題：
+
+**對抗的不對稱性：**
+- 機器學習模型易受資料汙染與閃避攻擊（Evasion attacks）影響。
+- 資安基礎設施必須抵禦具適應性的智慧代理人，但現有的設定工具卻是靜態的。
+
+**結構性倫理風險：**
+- 微觀層級的錯誤（例如單一誤報）會累積成宏觀層級的失敗（如警報疲勞、偏見放大）。
+- 我們缺乏語言來有效表達 **結構性錯誤成長（α）**；現有的指標僅停留在單點層次。
+
+**SOC 的認知複雜度：**
+- 資安維運中心（SOC）涉及人類分析師、AI 助理與自動化 Playbook 的複雜互動。
+- 目前缺乏統一的形式化方法來模擬 **人機協作、認知負載** 以及防禦能力隨時間的衰退。
+
+現有的生態系（Python 腳本、YAML 設定檔、專有的 SIEM 規則）彼此割裂。它們無法將「一個決策及其未來後果」建模為單一的運算單元。
+
+### 1.2 Goals / 目標
+
+#### English
+
 .uad aims to:
-Provide a formal, executable language for adversarial and defensive dynamics.
-Make ethical and structural risk measurable via language-level constructs.
-Support multi-scale simulation: micro-level events, meso-level campaigns, macro-level societal or organizational trends.
-Integrate naturally with existing stacks (Python, Go, SIEM platforms, cyber ranges) as a modeling + orchestration layer.
-中文
-.uad 的設計目標包括：
-提供一套 可形式化且可執行 的語言，用於描述攻擊與防禦的動態。
-透過語言層的建模元素，讓 倫理與結構性風險可以被量測與分析。
-支援 多尺度模擬：從個別事件，到攻擊活動，再到長期的組織或社會趨勢。
-自然整合現有技術堆疊（Python、Go、SIEM 平台、Cyber Range），作為 建模與協調層。
+
+- **Quantify Risk**: Make ethical and structural risk measurable via native language constructs.
+- **Unify Simulation**: Support multi-scale modeling—from micro-events (packets) to macro-trends (societal trust).
+- **Bridge Operations & Research**: Serve as both a modeling tool for researchers and an orchestration layer for operational engineers.
+
+#### 中文
+
+.uad 的設計目標為：
+
+- **量化風險**：透過原生語言構造，讓倫理與結構性風險可被測量。
+- **統一模擬**：支援多尺度建模——從微觀事件（封包）到宏觀趨勢（社會信任度）。
+- **連結維運與研究**：既是研究人員的建模工具，也是維運工程師的協調層。
+
+### 1.3 Why a New Language? / 為何需要新語言？
+
+#### English
+
+**Why not just use Python or Go?**
+
+- **Verifiability**: .uad is designed to be statically analyzed for ethical bounds. We want to prove "this scenario cannot generate a fatal error rate > X" at compile time, which is difficult in dynamic languages.
+- **Domain Primitives**: Concepts like Action, Judge, and Mistake are built-in types, not external libraries. This enforces semantic consistency.
+- **Determinism**: The .uad VM ensures that a simulation run is perfectly reproducible, a requirement for scientific rigor in cyber ranges.
+
+#### 中文
+
+**為什麼不直接使用 Python 或 Go？**
+
+- **可驗證性**：.uad 旨在對倫理邊界進行靜態分析。我們希望在編譯時期就能證明「此情境不會產生大於 X 的致命錯誤率」，這在動態語言中極難實現。
+- **領域原語**：諸如 Action、Judge 與 Mistake 是內建型別而非外部函式庫，這強制了語意的一致性。
+- **決定論**：.uad VM 確保模擬執行的結果是完全可重現的，這是 Cyber Range 科學嚴謹性的基本要求。
 2. Language Stack Overview / 語言堆疊總覽
 2.1 Layers / 語言層級
 English
