@@ -180,84 +180,69 @@ Current ecosystems (Python scripts, YAML configs, proprietary SIEM rules) are fr
 - 宣告式 DSL，用於定義高階 Profile 與情境。
 - 用於撰寫 ERH Profile、心理史學模型與認知型 SIEM 規則。
 - 轉譯為 .uad-core。
-3. Core Concepts / 核心概念
-3.1 Decision & Action / 決策與行動
-English
-In .uad, a decision event is represented as an Action:
-Action has:
-id: unique identifier
-context: feature vector / structured record
-complexity: numeric measure of difficulty
-true_value: ground-truth utility or ethical score
-importance: weight capturing criticality
-A Judge represents the system’s decision:
-Judge has:
-kind: human / pipeline / model / hybrid
-decision: numeric or categorical output
-meta: latency, confidence, justification pointers
-The combination (Action, Judge) is the atomic unit for ethical and structural analysis.
-中文
-在 .uad 中，一個 決策事件 以 Action 表示：
-Action 具備：
-id：唯一識別碼
-context：特徵向量或結構化資料
-complexity：難度的數值量測
-true_value：真實效益或倫理評分
-importance：代表關鍵程度的權重
-Judge 代表系統的判斷：
-Judge 具備：
-kind：human / pipeline / model / hybrid 等類別
-decision：數值或分類結果
-meta：延遲、不確定度、解釋資料等
-(Action, Judge) 的組合，是 .uad 中進行倫理與結構分析的基本單位。
-3.2 Error, Mistake, Ethical Prime / 錯誤、誤判與 Ethical Prime
-English
-Given Action a and Judge j:
-Error: Δ(a) = j.decision - a.true_value
-Mistake: |Δ(a)| > threshold
-Ethical Prime:
-is_mistake(a, j) and
-a.importance is in top quantile and
-a.complexity above a defined bound.
-These notions are used to define:
-Π(x): number of ethical primes with complexity ≤ x.
-E(x): deviation from baseline growth.
-α: structural error growth exponent.
-.uad provides language primitives and libraries to compute and visualize these quantities.
-中文
-對於 Action a 與 Judge j：
-錯誤：Δ(a) = j.decision - a.true_value
-誤判：當 |Δ(a)| 大於某個閾值時，視為一次誤判
-Ethical Prime：
-is_mistake(a, j) 為真，且
-a.importance 落在高分位（例如前 10%），且
-a.complexity 高於指定門檻。
-在此基礎上，可以定義：
-Π(x)：複雜度 ≤ x 的 ethical prime 數量
-E(x)：相對於 baseline 成長的偏差
-α：結構性錯誤成長指數
-.uad 內建原語與函式庫，可直接計算並視覺化這些指標。
-3.3 Agents, Population, Macro-dynamics / 代理人、群體與宏觀動態
-English
-Inspired by psychohistory, .uad models populations and macro-variables:
-Agent: individual entity (user, analyst, attacker, micro-model).
-Population: collection of agents with distributional properties.
-MacroState: aggregate variables (e.g., alert volume, SOC fatigue, trust in AI).
-Dynamics: update rules over discrete time steps t = 0, 1, 2, ….
-This allows .uad programs to express:
-Crisis conditions (Seldon-like events)
-Tipping points where error growth changes regime
-Impact of interventions (new policy, new model, new tooling)
-中文
-受心理史學啟發，.uad 可建模 代理人群體 與 宏觀狀態：
-Agent：個別實體（使用者、分析師、攻擊者、子模型等）。
-Population：由多個 agent 組成，帶有統計與分布特性。
-MacroState：聚合變數（例如警報量、SOC 疲勞程度、對 AI 的信任）。
-Dynamics：在離散時間步 t = 0, 1, 2, … 上的更新規則。
-透過這些構造，.uad 程式可以表達：
-危機條件（類 Seldon crisis）
-結構性錯誤成長行為的「轉折點」
-介入措施（新政策、新模型、新工具）的長期影響
+## 3. Core Concepts / 核心概念
+
+### 3.1 Decision & Action / 決策與行動
+
+#### English
+
+The atomic unit of .uad is the interaction between an **Action** and a **Judge**.
+
+- **Action** (a): Represents an event requiring a decision. It carries properties like complexity (difficulty), true_value (ground truth), and importance (weight).
+- **Judge** (j): Represents the decision-maker (human, model, or hybrid). It produces a decision and metadata.
+
+#### 中文
+
+.uad 的基本運算單元是 **Action（行動）** 與 **Judge（判斷者）** 之間的互動。
+
+- **Action** (a)：代表需要決策的事件。它攜帶 complexity（複雜度）、true_value（真實值/Ground Truth）與 importance（重要性權重）等屬性。
+- **Judge** (j)：代表決策者（人類、模型或混合體）。它產出 decision（決策結果）與中繼資料。
+
+### 3.2 The Ethical Prime / Ethical Prime
+
+#### English
+
+.uad formalizes the concept of an **Ethical Prime**: a significant error in a high-stakes situation.
+
+Given Action *a* and Judge *j*:
+
+- **Error**: Δ(a) = j.decision − a.true_value
+- **Mistake**: |Δ(a)| > threshold
+- **Ethical Prime**: An event is a prime if it is a Mistake, its Importance is in the top quantile (e.g., critical infrastructure), and its Complexity meets specific criteria.
+
+Metrics derived from this:
+
+- **Π(x)**: The count of ethical primes with complexity ≤ x.
+- **α**: The structural error growth exponent, derived from the distribution of Π(x).
+
+#### 中文
+
+.uad 形式化了 **Ethical Prime** 的概念：在高風險情境下的重大錯誤。
+
+給定 Action *a* 與 Judge *j*：
+
+- **誤差 (Error)**：Δ(a) = j.decision − a.true_value
+- **誤判 (Mistake)**：當 |Δ(a)| > 閾值
+- **Ethical Prime**：若一個事件屬於 誤判，且其 重要性 位於高分位（如關鍵基礎設施），且 複雜度 符合特定標準，則定義為 Ethical Prime。
+
+由此導出的指標：
+
+- **Π(x)**：複雜度 ≤ x 的 Ethical Prime 數量。
+- **α**：結構性錯誤成長指數，源自 Π(x) 的分布。
+
+### 3.3 Psychohistory Dynamics / 心理史學動態
+
+#### English
+
+.uad allows modeling **Populations** (aggregates of Agents) and **MacroStates** (system-wide variables).
+
+Through discrete time steps (t), .uad simulates how micro-actions by agents (attackers, analysts) influence macro-states (system integrity, trust), enabling the prediction of "tipping points."
+
+#### 中文
+
+.uad 允許對 **Population（群體）**（Agent 的集合）與 **MacroState（宏觀狀態）**（系統級變數）進行建模。
+
+透過離散時間步 (t)，.uad 模擬代理人（攻擊者、分析師）的微觀行動如何影響宏觀狀態（系統完整性、信任度），進而預測系統的「轉折點」。
 4. .uad-core Language Design / .uad-core 語言設計
 4.1 Type System / 型別系統
 English
