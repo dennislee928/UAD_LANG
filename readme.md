@@ -1,6 +1,39 @@
 .uad Programming Language Whitepaper
 .uad 程式語言白皮書
 0. Abstract / 摘要
+
+# .uad Language
+
+.uad is a three-layer language stack for modeling adversarial dynamics,
+ethical risk, and cognitive security systems.
+
+- `.uad-core`   – strongly-typed core language
+- `.uad-model`  – declarative DSL for ERH profiles, cyber range scenarios,
+                  cognitive SIEM rules
+- `.uad-IR`     – typed intermediate representation executed by a small VM
+
+## Repo layout
+
+- `cmd/uadc`   – compiler CLI
+- `cmd/uadvm`  – VM runner CLI
+- `internal/*` – lexer, parser, typer, IR, VM, model desugaring
+- `docs/*`     – whitepaper, language specs
+- `examples/*` – sample .uad / .uadmodel programs
+
+## Quick start
+
+```bash
+git clone https://github.com/yourname/uad-lang.git
+cd uad-lang
+go mod tidy
+
+# build compiler & VM
+make build
+
+# run a core example (to be implemented)
+./bin/uadc examples/core/hello_world.uad -o out.uadir
+./bin/uadvm out.uadir
+
 English
 .uad is a domain-focused programming language for modeling adversarial dynamics, ethical risk, and cognitive security systems.
 Unlike general-purpose languages that optimize for arbitrary computation, .uad is designed to:
