@@ -243,36 +243,34 @@ Through discrete time steps (t), .uad simulates how micro-actions by agents (att
 .uad 允許對 **Population（群體）**（Agent 的集合）與 **MacroState（宏觀狀態）**（系統級變數）進行建模。
 
 透過離散時間步 (t)，.uad 模擬代理人（攻擊者、分析師）的微觀行動如何影響宏觀狀態（系統完整性、信任度），進而預測系統的「轉折點」。
-4. .uad-core Language Design / .uad-core 語言設計
-4.1 Type System / 型別系統
-English
-.uad-core adopts a static, strong type system with type inference:
-Primitives:
-Int, Float, Bool, String, Time, Duration
-Composites:
-Struct (records), Enum (sum types), arrays, Map<K, V>
-Domain-specific:
-Action, Judge, Agent, Population, Metric, Scenario
-Features:
-Algebraic data types for clean modeling of states & events.
-Option / Result types to handle absence and errors.
-Parametric polymorphism in library-level (future).
-中文
-.uad-core 採用 靜態、強型別 的型別系統，並支援型別推斷：
-基本型別：
-Int, Float, Bool, String, Time, Duration
-複合型別：
-Struct（紀錄）、Enum（和型）、陣列、Map<K, V>
-領域型別：
-Action, Judge, Agent, Population, Metric, Scenario
-特性：
-以代數資料型別（ADT）建模狀態與事件，語意清楚。
-使用 Option / Result 型別處理缺值與錯誤。
-未來在函式庫層支援參數多型（泛型）。
-4.2 Syntax & Semantics / 語法與語意（摘要）
-English (illustrative snippet)
-code
-Uad
+## 4. .uad-core Language Design / .uad-core 語言設計
+
+### 4.1 Type System / 型別系統
+
+#### English
+
+.uad-core uses a static, strong type system designed for correctness and safety.
+
+- **Primitives**: Int, Float, Bool, String, Time, Duration.
+- **Algebraic Data Types**: Struct (product types) and Enum (sum types).
+- **Collections**: Arrays, Map<K,V>, Set<T>.
+- **Domain Types**: Action, Judge, Agent, Population, Metric.
+
+#### 中文
+
+.uad-core 使用 **靜態、強型別系統**，旨在確保正確性與安全性。
+
+- **基本型別**：Int, Float, Bool, String, Time, Duration。
+- **代數資料型別**：Struct（積型別）與 Enum（和型別）。
+- **集合**：Arrays, Map<K,V>, Set<T>。
+- **領域型別**：Action, Judge, Agent, Population, Metric。
+
+### 4.2 Syntax Example / 語法範例
+
+#### English
+
+```uad
+// Definition of a decision context
 struct Action {
   id: String,
   complexity: Float,
@@ -280,6 +278,7 @@ struct Action {
   importance: Float,
 }
 
+// Definition of a decision maker
 struct Judge {
   kind: JudgeKind,
   decision: Float,
@@ -292,15 +291,21 @@ enum JudgeKind {
   Hybrid,
 }
 
+// Core logic function
 fn is_mistake(a: Action, j: Judge, threshold: Float) -> Bool {
   let delta = j.decision - a.true_value;
-  abs(delta) > threshold
+  // abs() is a built-in primitive
+  return abs(delta) > threshold;
 }
-Expression-oriented: functions return values; if and match are expressions.
+```
+
+Expression-oriented: functions return values; if and match are expressions.  
 Side effects (logging, event emission) are explicit and controlled.
-中文（示意片段）
-code
-Uad
+
+#### 中文
+
+```uad
+// 定義決策情境
 struct Action {
   id: String,
   complexity: Float,
@@ -308,6 +313,7 @@ struct Action {
   importance: Float,
 }
 
+// 定義決策者
 struct Judge {
   kind: JudgeKind,
   decision: Float,
@@ -320,11 +326,15 @@ enum JudgeKind {
   Hybrid,
 }
 
+// 核心邏輯函式
 fn is_mistake(a: Action, j: Judge, threshold: Float) -> Bool {
-  let delta = j.decision - a.true_value
-  abs(delta) > threshold
+  let delta = j.decision - a.true_value;
+  // abs() 為內建原語
+  return abs(delta) > threshold;
 }
-以運算式為中心：函式回傳值，if 與 match 皆為運算式。
+```
+
+以運算式為中心：函式回傳值，if 與 match 皆為運算式。  
 副作用（logging、事件送出）以明確語法呈現，以利分析與驗證。
 5. .uad-IR & VM / .uad-IR 與虛擬機
 5.1 Design Goals / 設計目標
