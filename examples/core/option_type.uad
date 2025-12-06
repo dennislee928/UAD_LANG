@@ -1,0 +1,32 @@
+// Option 類型範例 - 展示 enum 和 match 的組合使用
+enum Option {
+    Some(Int),
+    None,
+}
+
+fn safe_divide(a: Int, b: Int) -> Option {
+    if b == 0 {
+        return None;
+    } else {
+        return Some(a / b);
+    }
+}
+
+fn unwrap_or_default(opt: Option, default: Int) -> Int {
+    match opt {
+        Some(value) => value,
+        None => default,
+    }
+}
+
+fn main() {
+    let result1 = safe_divide(10, 2);
+    let result2 = safe_divide(10, 0);
+    
+    let value1 = unwrap_or_default(result1, -1);
+    let value2 = unwrap_or_default(result2, -1);
+    
+    println("10 / 2 = " + value1);
+    println("10 / 0 = " + value2);
+}
+

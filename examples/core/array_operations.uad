@@ -1,0 +1,37 @@
+// 陣列操作範例
+fn sum_array(arr: [Int]) -> Int {
+    let total = 0;
+    let i = 0;
+    while i < len(arr) {
+        total = total + arr[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+fn find_max(arr: [Int]) -> Int {
+    if len(arr) == 0 {
+        return 0;
+    }
+    
+    let max = arr[0];
+    let i = 1;
+    while i < len(arr) {
+        if arr[i] > max {
+            max = arr[i];
+        }
+        i = i + 1;
+    }
+    return max;
+}
+
+fn main() {
+    let numbers = [1, 2, 3, 4, 5, 10, 20, 30];
+    
+    let total = sum_array(numbers);
+    let maximum = find_max(numbers);
+    
+    println("Sum: " + total);
+    println("Max: " + maximum);
+}
+

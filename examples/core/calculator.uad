@@ -1,0 +1,30 @@
+// 簡單計算器範例 - 展示結構體和函數
+struct Point {
+    x: Float,
+    y: Float,
+}
+
+fn distance(p1: Point, p2: Point) -> Float {
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
+    return sqrt(dx * dx + dy * dy);
+}
+
+fn midpoint(p1: Point, p2: Point) -> Point {
+    return Point {
+        x: (p1.x + p2.x) / 2.0,
+        y: (p1.y + p2.y) / 2.0,
+    };
+}
+
+fn main() {
+    let p1 = Point { x: 0.0, y: 0.0 };
+    let p2 = Point { x: 3.0, y: 4.0 };
+    
+    let dist = distance(p1, p2);
+    let mid = midpoint(p1, p2);
+    
+    println("Distance: " + dist);
+    println("Midpoint: (" + mid.x + ", " + mid.y + ")");
+}
+

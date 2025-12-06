@@ -1,0 +1,29 @@
+// 階乘計算 - 展示遞迴和 if 表達式
+fn factorial(n: Int) -> Int {
+    if n <= 1 {
+        return 1;
+    } else {
+        return n * factorial(n - 1);
+    }
+}
+
+fn factorial_iterative(n: Int) -> Int {
+    let result = 1;
+    let i = 1;
+    while i <= n {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn main() {
+    let n = 5;
+    
+    let rec_result = factorial(n);
+    let iter_result = factorial_iterative(n);
+    
+    println("Factorial of " + n + " (recursive): " + rec_result);
+    println("Factorial of " + n + " (iterative): " + iter_result);
+}
+

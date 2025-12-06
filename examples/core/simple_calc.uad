@@ -1,0 +1,29 @@
+// 簡單計算器
+fn add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+fn subtract(a: Int, b: Int) -> Int {
+    return a - b;
+}
+
+fn multiply(a: Int, b: Int) -> Int {
+    return a * b;
+}
+
+fn divide(a: Int, b: Int) -> Int {
+    return a / b;
+}
+
+fn main() {
+    let x = 10;
+    let y = 5;
+    
+    println("x = " + x);
+    println("y = " + y);
+    println("x + y = " + add(x, y));
+    println("x - y = " + subtract(x, y));
+    println("x * y = " + multiply(x, y));
+    println("x / y = " + divide(x, y));
+}
+

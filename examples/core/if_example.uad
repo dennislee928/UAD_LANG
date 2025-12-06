@@ -1,0 +1,35 @@
+// if 表達式範例
+fn max(a: Int, b: Int) -> Int {
+    if a > b {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+fn min(a: Int, b: Int) -> Int {
+    if a < b {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+fn abs(x: Int) -> Int {
+    if x < 0 {
+        return -x;
+    } else {
+        return x;
+    }
+}
+
+fn main() {
+    let a = 10;
+    let b = 20;
+    
+    println("max(" + a + ", " + b + ") = " + max(a, b));
+    println("min(" + a + ", " + b + ") = " + min(a, b));
+    println("abs(-5) = " + abs(-5));
+    println("abs(5) = " + abs(5));
+}
+

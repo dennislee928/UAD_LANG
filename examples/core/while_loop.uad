@@ -1,0 +1,26 @@
+// while 迴圈範例
+fn countdown(n: Int) {
+    let i = n;
+    while i > 0 {
+        println("Countdown: " + i);
+        i = i - 1;
+    }
+    println("Blast off!");
+}
+
+fn sum_to_n(n: Int) -> Int {
+    let sum = 0;
+    let i = 1;
+    while i <= n {
+        sum = sum + i;
+        i = i + 1;
+    }
+    return sum;
+}
+
+fn main() {
+    countdown(5);
+    let result = sum_to_n(10);
+    println("Sum of 1 to 10: " + result);
+}
+

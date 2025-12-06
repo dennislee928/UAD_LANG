@@ -1,0 +1,27 @@
+// Match expression example - 展示模式匹配
+enum Result {
+    Ok(Int),
+    Err(String),
+}
+
+fn handle_result(r: Result) -> Int {
+    match r {
+        Ok(value) => value,
+        Err(msg) => {
+            println("Error: " + msg);
+            return 0;
+        },
+    }
+}
+
+fn main() {
+    let success = Ok(42);
+    let failure = Err("Something went wrong");
+    
+    let value1 = handle_result(success);
+    let value2 = handle_result(failure);
+    
+    println("Value 1: " + value1);
+    println("Value 2: " + value2);
+}
+
