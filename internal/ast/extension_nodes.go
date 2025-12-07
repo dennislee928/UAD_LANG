@@ -114,6 +114,26 @@ func NewEmitStmt(typeName *Ident, fields *StructLiteral, span common.Span) *Emit
 	}
 }
 
+// UseStmt represents a use statement for calling motifs.
+// Syntax: `use <motif_name>;` or `use <motif_name>(<args>);`
+type UseStmt struct {
+	baseNode
+	MotifName *Ident    // Motif name to use
+	Args      []Expr    // Arguments for parameterized motifs (optional)
+}
+
+func (u *UseStmt) stmtNode() {}
+func (u *UseStmt) musicalNode() {}
+
+// NewUseStmt creates a new use statement.
+func NewUseStmt(motifName *Ident, args []Expr, span common.Span) *UseStmt {
+	return &UseStmt{
+		baseNode: baseNode{span},
+		MotifName: motifName,
+		Args:      args,
+	}
+}
+
 // MotifUseNode represents the use/instantiation of a motif.
 // Applies a motif at a specific bar range.
 // Planned syntax: `use motif <name> at bars <range>`
