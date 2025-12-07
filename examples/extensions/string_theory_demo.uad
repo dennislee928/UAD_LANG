@@ -1,0 +1,99 @@
+// string_theory_demo.uad
+// Demonstrates the String Theory Semantics (M2.4) features of UAD language
+
+// Define a brane (dimensional context)
+brane ethical_space {
+    dimensions [time, risk, trust]
+}
+
+brane technical_space {
+    dimensions [cpu, memory, network]
+}
+
+// Define strings (entities with vibrational modes)
+string agent_A {
+    modes {
+        trust_level: Float,
+        risk_score: Float,
+        activity_rate: Float,
+    }
+}
+
+string agent_B {
+    modes {
+        trust_level: Float,
+        risk_score: Float,
+        activity_rate: Float,
+    }
+}
+
+string system_state {
+    modes {
+        global_risk: Float,
+        alert_level: Float,
+    }
+}
+
+// Attach strings to branes
+// Syntax: string <name> on <brane1>, <brane2>, ...
+// Note: This syntax needs runtime support
+
+// Define couplings (how changes in one mode affect another)
+coupling agent_A.risk_score agent_B.trust_level with strength 0.7
+
+coupling agent_A.trust_level system_state.global_risk with strength -0.5
+
+coupling agent_B.risk_score system_state.alert_level with strength 0.8
+
+// Define resonance rules (conditional coupling effects)
+resonance when agent_A.risk_score > 8.0 {
+    // When agent A's risk is high, amplify system alert
+    // This would trigger automatic coupling strength increase
+    print("⚠️  Resonance triggered: High risk detected in Agent A");
+    emit Event {
+        type: "resonance_alert",
+        source: "agent_A",
+        reason: "risk_threshold_exceeded",
+    };
+}
+
+resonance when system_state.global_risk > 7.0 && system_state.alert_level > 6.0 {
+    print("🚨 Critical resonance: System-wide high risk!");
+    emit Event {
+        type: "system_critical",
+        action: "emergency_response",
+    };
+}
+
+// Main execution
+fn main() {
+    print("String Theory DSL Demo: Multi-Agent Field Coupling");
+    print("===================================================");
+    print("");
+    print("This example demonstrates:");
+    print("1. Brane declarations (dimensional contexts)");
+    print("2. String declarations with modes (vibrational properties)");
+    print("3. Coupling relationships between modes");
+    print("4. Resonance rules for conditional effects");
+    print("");
+    
+    // Simulate field value changes
+    print("Simulating mode updates:");
+    print("- Agent A trust_level = 5.0");
+    print("- Agent A risk_score = 9.0  <- triggers resonance");
+    print("");
+    
+    // In full implementation, these assignments would propagate through couplings:
+    // agent_A.trust_level = 5.0;
+    // agent_A.risk_score = 9.0;  // This should trigger resonance and propagate to agent_B
+    // agent_B.trust_level would automatically decrease due to coupling
+    
+    print("Expected propagation:");
+    print("1. Agent A risk_score change");
+    print("2. → Coupled to Agent B trust_level (strength 0.7)");
+    print("3. → Coupled to System global_risk (strength -0.5)");
+    print("4. Resonance rule evaluates: agent_A.risk_score > 8.0 ✓");
+    print("");
+    print("Status: Parser ✅ | Runtime ⚠️ Partial");
+}
+
