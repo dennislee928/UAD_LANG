@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -129,6 +130,12 @@ func (i *Interpreter) initBuiltins() {
 			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType}, typer.BoolType)),
 		"replace": NewBuiltinFunction("replace", i.builtinReplace,
 			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType, typer.StringType}, typer.StringType)),
+		
+		// JSON
+		"json_parse": NewBuiltinFunction("json_parse", i.builtinJsonParse,
+			typer.NewFunctionType([]typer.Type{typer.StringType}, typer.StringType)),
+		"json_stringify": NewBuiltinFunction("json_stringify", i.builtinJsonStringify,
+			typer.NewFunctionType([]typer.Type{typer.StringType}, typer.StringType)),
 	}
 	
 	for name, fn := range builtins {
@@ -429,6 +436,131 @@ func (i *Interpreter) builtinReplace(interp *Interpreter, args []Value) (Value, 
 	
 	result := strings.ReplaceAll(str.Value, old.Value, new.Value)
 	return NewStringValue(result), nil
+}
+
+// ==================== JSON Built-ins ====================
+
+func (i *Interpreter) builtinJsonParse(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("json_parse expects 1 argument, got %d", len(args))
+	}
+	str, ok := args[0].(*StringValue)
+	if !ok {
+		return nil, fmt.Errorf("json_parse expects string argument")
+	}
+	
+	// Parse JSON to generic interface{}
+	var data interface{}
+	if err := json.Unmarshal([]byte(str.Value), &data); err != nil {
+		return nil, fmt.Errorf("json_parse: %v", err)
+	}
+	
+	// Convert to UAD value
+	return i.jsonToValue(data)
+}
+
+func (i *Interpreter) builtinJsonStringify(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("json_stringify expects 1 argument, got %d", len(args))
+	}
+	
+	// Convert UAD value to Go value
+	goValue := i.valueToGo(args[0])
+	
+	// Marshal to JSON
+	jsonBytes, err := json.Marshal(goValue)
+	if err != nil {
+		return nil, fmt.Errorf("json_stringify: %v", err)
+	}
+	
+	return NewStringValue(string(jsonBytes)), nil
+}
+
+// jsonToValue converts a Go interface{} (from JSON) to a UAD Value
+func (i *Interpreter) jsonToValue(data interface{}) (Value, error) {
+	switch v := data.(type) {
+	case nil:
+		return NewNilValue(), nil
+	
+	case bool:
+		return NewBoolValue(v), nil
+	
+	case float64:
+		// JSON numbers are always float64
+		if v == float64(int64(v)) {
+			return NewIntValue(int64(v)), nil
+		}
+		return NewFloatValue(v), nil
+	
+	case string:
+		return NewStringValue(v), nil
+	
+	case []interface{}:
+		// JSON array -> UAD array
+		elements := make([]Value, len(v))
+		for idx, elem := range v {
+			val, err := i.jsonToValue(elem)
+			if err != nil {
+				return nil, err
+			}
+			elements[idx] = val
+		}
+		// Use generic type for now
+		return NewArrayValue(elements, typer.StringType), nil
+	
+	case map[string]interface{}:
+		// JSON object -> UAD map
+		mapVal := NewMapValue(typer.StringType, typer.StringType)
+		for key, val := range v {
+			uadVal, err := i.jsonToValue(val)
+			if err != nil {
+				return nil, err
+			}
+			mapVal.Entries[key] = uadVal
+		}
+		return mapVal, nil
+	
+	default:
+		return nil, fmt.Errorf("unsupported JSON type: %T", v)
+	}
+}
+
+// valueToGo converts a UAD Value to a Go interface{} for JSON marshaling
+func (i *Interpreter) valueToGo(val Value) interface{} {
+	switch v := val.(type) {
+	case *NilValue:
+		return nil
+	
+	case *BoolValue:
+		return v.Value
+	
+	case *IntValue:
+		return v.Value
+	
+	case *FloatValue:
+		return v.Value
+	
+	case *StringValue:
+		return v.Value
+	
+	case *ArrayValue:
+		arr := make([]interface{}, len(v.Elements))
+		for idx, elem := range v.Elements {
+			arr[idx] = i.valueToGo(elem)
+		}
+		return arr
+	
+	case *MapValue:
+		m := make(map[string]interface{})
+		for key, val := range v.Entries {
+			m[key] = i.valueToGo(val)
+		}
+		return m
+	
+	default:
+		// Fallback to string representation
+		return val.String()
+	}
 }
 
 // ==================== Declaration Execution ====================
