@@ -3,7 +3,7 @@
 <div align="center">
 
 **Unified Adversarial Dynamics Language**  
-*Domain-Specific Language for Adversarial Modeling, Ethical Risk, and Cognitive Security*
+_Domain-Specific Language for Adversarial Modeling, Ethical Risk, and Cognitive Security_
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
