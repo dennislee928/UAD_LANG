@@ -67,6 +67,31 @@ const (
 	TokenPrimeThreshold // prime_threshold
 	TokenFitAlpha       // fit_alpha
 
+	// Keywords - Musical DSL (M2.3)
+	TokenScore     // score
+	TokenTrack     // track
+	TokenBars      // bars
+	TokenMotif     // motif
+	TokenUse       // use
+	TokenAt        // at
+	TokenVariation // variation
+	TokenAs        // as
+	TokenTranspose // transpose
+
+	// Keywords - String Theory DSL (M2.4)
+	TokenStringKw  // string (renamed to avoid conflict with TokenString literal)
+	TokenBrane     // brane
+	TokenOn        // on
+	TokenCoupling  // coupling
+	TokenResonance // resonance
+	TokenModes     // modes
+	TokenWith      // with
+	TokenStrength  // strength
+	TokenDimensions // dimensions
+
+	// Keywords - Entanglement (M2.5)
+	TokenEntangle // entangle
+
 	// Operators - Arithmetic
 	TokenPlus  // +
 	TokenMinus // -
@@ -214,6 +239,44 @@ func (t TokenType) String() string {
 		return "prime_threshold"
 	case TokenFitAlpha:
 		return "fit_alpha"
+	case TokenScore:
+		return "score"
+	case TokenTrack:
+		return "track"
+	case TokenBars:
+		return "bars"
+	case TokenMotif:
+		return "motif"
+	case TokenUse:
+		return "use"
+	case TokenAt:
+		return "at"
+	case TokenVariation:
+		return "variation"
+	case TokenAs:
+		return "as"
+	case TokenTranspose:
+		return "transpose"
+	case TokenStringKw:
+		return "string"
+	case TokenBrane:
+		return "brane"
+	case TokenOn:
+		return "on"
+	case TokenCoupling:
+		return "coupling"
+	case TokenResonance:
+		return "resonance"
+	case TokenModes:
+		return "modes"
+	case TokenWith:
+		return "with"
+	case TokenStrength:
+		return "strength"
+	case TokenDimensions:
+		return "dimensions"
+	case TokenEntangle:
+		return "entangle"
 	case TokenPlus:
 		return "+"
 	case TokenMinus:
@@ -322,6 +385,28 @@ var keywords = map[string]TokenType{
 	"dataset":          TokenDataset,
 	"prime_threshold":  TokenPrimeThreshold,
 	"fit_alpha":        TokenFitAlpha,
+	// Musical DSL
+	"score":      TokenScore,
+	"track":      TokenTrack,
+	"bars":       TokenBars,
+	"motif":      TokenMotif,
+	"use":        TokenUse,
+	"at":         TokenAt,
+	"variation":  TokenVariation,
+	"as":         TokenAs,
+	"transpose":  TokenTranspose,
+	// String Theory DSL
+	"string":     TokenStringKw,
+	"brane":      TokenBrane,
+	"on":         TokenOn,
+	"coupling":   TokenCoupling,
+	"resonance":  TokenResonance,
+	"modes":      TokenModes,
+	"with":       TokenWith,
+	"strength":   TokenStrength,
+	"dimensions": TokenDimensions,
+	// Entanglement
+	"entangle": TokenEntangle,
 }
 
 // LookupKeyword checks if an identifier is a keyword
@@ -334,7 +419,7 @@ func LookupKeyword(ident string) (TokenType, bool) {
 
 // IsKeyword checks if a token type is a keyword
 func IsKeyword(typ TokenType) bool {
-	return typ >= TokenFn && typ <= TokenFitAlpha
+	return typ >= TokenFn && typ <= TokenEntangle
 }
 
 // IsOperator checks if a token type is an operator
