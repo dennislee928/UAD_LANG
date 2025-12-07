@@ -3,6 +3,23 @@
 // String Theory semantics (brane/coupling/resonance) for large-scale system evolution
 
 // ============================================================================
+// Event Structure Definition
+// ============================================================================
+
+struct Event {
+    type: String,
+    effect: String,
+    multiplier: Float,
+    risk_multiplier: Float,
+    target: String,
+    increase: Float,
+    severity: String,
+    action: String,
+    measures: String,
+    growth_rate: Float,
+}
+
+// ============================================================================
 // Phase 1: Define Branes (Dimensional Contexts)
 // ============================================================================
 
@@ -170,11 +187,7 @@ resonance when macro_system_state.systemic_risk > 8.5 {
     
     emit Event {
         type: "stabilization_measures",
-        measures: [
-            "increase_transparency",
-            "enhance_accountability",
-            "improve_security",
-        ],
+        measures: "increase_transparency, enhance_accountability, improve_security",
     };
 }
 

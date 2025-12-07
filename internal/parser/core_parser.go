@@ -1077,6 +1077,11 @@ func (p *Parser) parseBlockExpr() (*ast.BlockExpr, error) {
 	var finalExpr ast.Expr
 	
 	for !p.check(lexer.TokenRBrace) && !p.isAtEnd() {
+		// Skip comments
+		if p.match(lexer.TokenComment) {
+			continue
+		}
+		
 		// Check if this is a statement keyword
 		if p.isStmtStart() {
 			stmt, err := p.parseStmt()

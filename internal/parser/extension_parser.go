@@ -542,6 +542,14 @@ func (p *Parser) ParseDeclExtension() (ast.Decl, error) {
 // Returns nil if the token doesn't match any extension statement.
 func (p *Parser) ParseStmtExtension() (ast.Stmt, error) {
 	switch {
+	case p.check(lexer.TokenBars):
+		// Allow bars as statements for nesting
+		barNode, err := p.parseBarRangeNode()
+		if err != nil {
+			return nil, err
+		}
+		// BarRangeNode implements stmtNode(), so we can return it as a statement
+		return barNode, nil
 	case p.check(lexer.TokenEmit):
 		return p.parseEmitStmt()
 	case p.check(lexer.TokenUse):

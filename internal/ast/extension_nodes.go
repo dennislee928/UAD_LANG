@@ -77,6 +77,7 @@ type BarRangeNode struct {
 }
 
 func (b *BarRangeNode) musicalNode() {}
+func (b *BarRangeNode) stmtNode() {} // Allow bars as statements for nesting
 
 // MotifDeclNode represents a motif (reusable musical pattern) declaration.
 // Motifs are like functions but for temporal patterns.
