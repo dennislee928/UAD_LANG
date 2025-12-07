@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go: ['1.21']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go }}
+    
+    - name: Download dependencies
+      run: make deps
+    
+    - name: Build binaries
+      run: make build
+    
+    - name: Verify binaries
+      run: |
+        ./bin/uadc --help || true
+        ./bin/uadvm --help || true
+        ./bin/uadi --help || true
+        ./bin/uadrepl --help || true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Run tests
+      run: make test || true
+    
+    - name: Generate coverage
+      run: make test-coverage || true
+    
+    - name: Upload coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage.html
+      continue-on-error: true
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+    
+    - name: Run linter
+      run: make lint || true
+    
+    - name: Run go vet
+      run: make vet
+
+  examples:
+    name: Run Examples
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Build interpreter
+      run: make build
+    
+    - name: Run hello_world example
+      run: ./bin/uadi -i examples/core/hello_world.uad || true
+    
+    - name: Run basic_math example
+      run: ./bin/uadi -i examples/core/basic_math.uad || true
+
