@@ -6,9 +6,12 @@ set -euo pipefail
 # Compares UAD with Go and Rust on compile-time and runtime performance
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BENCH_DIR="${SCRIPT_DIR}/benchmarks"
-RESULTS_DIR="${SCRIPT_DIR}/benchmarks/results"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+BENCH_DIR="${SCRIPT_DIR}"
+RESULTS_DIR="${SCRIPT_DIR}/results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+UADC="${PROJECT_ROOT}/bin/uadc"
+UADI="${PROJECT_ROOT}/bin/uadi"
 
 # Colors for output
 RED='\033[0;31m'
@@ -16,13 +19,36 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Check dependencies
+# Check dependencies with helpful installation instructions
 check_dependency() {
-    if ! command -v "$1" &> /dev/null; then
-        echo -e "${RED}Error: $1 is not installed${NC}"
-        echo "Please install it to run benchmarks"
-        exit 1
+    local cmd=$1
+    local install_cmd=$2
+    
+    if ! command -v "$cmd" &> /dev/null; then
+        echo -e "${RED}Error: $cmd is not installed${NC}"
+        if [ -n "$install_cmd" ]; then
+            echo -e "${YELLOW}Installation command:${NC}"
+            echo "  $install_cmd"
+        fi
+        echo ""
+        return 1
     fi
+    return 0
+}
+
+# Check UAD tools
+check_uad_tool() {
+    local tool=$1
+    local tool_path=$2
+    
+    if [ ! -f "$tool_path" ]; then
+        echo -e "${RED}Error: $tool not found at $tool_path${NC}"
+        echo -e "${YELLOW}Please build UAD tools first:${NC}"
+        echo "  cd ${PROJECT_ROOT} && make build"
+        echo ""
+        return 1
+    fi
+    return 0
 }
 
 echo -e "${GREEN}UAD Language Benchmark Suite${NC}"
@@ -31,10 +57,36 @@ echo ""
 
 # Check required tools
 echo "Checking dependencies..."
-check_dependency hyperfine
-check_dependency uadc
-check_dependency go
-check_dependency rustc
+MISSING_DEPS=0
+
+if ! check_dependency hyperfine "cargo install hyperfine  # or: brew install hyperfine"; then
+    MISSING_DEPS=1
+fi
+
+if ! check_dependency go ""; then
+    echo "  Install from: https://go.dev/dl/"
+    MISSING_DEPS=1
+fi
+
+if ! check_dependency rustc "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"; then
+    MISSING_DEPS=1
+fi
+
+if ! check_uad_tool "uadc" "${UADC}"; then
+    MISSING_DEPS=1
+fi
+
+if ! check_uad_tool "uadi" "${UADI}"; then
+    MISSING_DEPS=1
+fi
+
+if [ $MISSING_DEPS -eq 1 ]; then
+    echo -e "${RED}Please install missing dependencies and try again.${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}All dependencies found!${NC}"
+echo ""
 
 # Create results directory
 mkdir -p "${RESULTS_DIR}"
@@ -55,7 +107,7 @@ run_compile_bench() {
         --min-runs 10 \
         --export-json "${results_file}" \
         --setup "rm -f /tmp/${scenario}_*" \
-        "uadc -i ${uad_file} -o /tmp/${scenario}_uad.uadir" \
+        "${UADC} -i ${uad_file} -o /tmp/${scenario}_uad.uadir" \
         "go build -o /tmp/${scenario}_go ${go_file}" \
         "rustc -O ${rust_file} -o /tmp/${scenario}_rs" || {
             echo -e "${RED}Warning: Some compile benchmarks failed${NC}"
@@ -88,7 +140,7 @@ run_runtime_bench() {
         --warmup 3 \
         --min-runs 10 \
         --export-json "${results_file}" \
-        "uadi -i ${BENCH_DIR}/uad/${scenario}.uad" \
+        "${UADI} -i ${BENCH_DIR}/uad/${scenario}.uad" \
         "/tmp/${scenario}_go" \
         "/tmp/${scenario}_rs" || {
             echo -e "${RED}Warning: Some runtime benchmarks failed${NC}"
