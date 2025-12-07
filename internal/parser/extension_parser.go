@@ -90,12 +90,8 @@ func (p *Parser) parseTrackNode() (*ast.TrackNode, error) {
 				return nil, err
 			}
 			bars = append(bars, barRange)
-		} else if p.check(lexer.TokenUse) {
-			// Handle motif use within track
-			// For now, skip or parse as statement
-			return nil, p.error("motif use not yet fully implemented")
 		} else {
-			return nil, p.error("expected 'bars' or 'use' in track body")
+			return nil, p.error("expected 'bars' in track body")
 		}
 	}
 
@@ -434,6 +430,51 @@ func (p *Parser) parseEmitStmt() (ast.Stmt, error) {
 	return ast.NewEmitStmt(typeName, structLit, span), nil
 }
 
+// parseUseStmt parses a use statement for calling motifs.
+// Syntax: use <motif_name>; or use <motif_name>(<args>);
+func (p *Parser) parseUseStmt() (ast.Stmt, error) {
+	start := p.current().Span.Start
+	p.consume(lexer.TokenUse, "expected 'use'")
+
+	// Parse motif name
+	motifName := p.parseIdent()
+	if motifName == nil {
+		return nil, p.error("expected motif name after 'use'")
+	}
+
+	// Parse optional arguments
+	var args []ast.Expr
+	if p.match(lexer.TokenLParen) {
+		// Parse argument list
+		if !p.check(lexer.TokenRParen) {
+			for {
+				arg, err := p.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				args = append(args, arg)
+
+				if !p.match(lexer.TokenComma) {
+					break
+				}
+			}
+		}
+		p.consume(lexer.TokenRParen, "expected ')' after arguments")
+	}
+
+	// Consume semicolon
+	p.consume(lexer.TokenSemicolon, "expected ';' after use statement")
+
+	end := p.previous().Span.End
+	span := common.Span{
+		File:  p.file,
+		Start: start,
+		End:   end,
+	}
+
+	return ast.NewUseStmt(motifName, args, span), nil
+}
+
 // ==================== Entanglement Parsing (M2.5) ====================
 
 // parseEntangleStmt parses an entangle statement.
@@ -503,6 +544,8 @@ func (p *Parser) ParseStmtExtension() (ast.Stmt, error) {
 	switch {
 	case p.check(lexer.TokenEmit):
 		return p.parseEmitStmt()
+	case p.check(lexer.TokenUse):
+		return p.parseUseStmt()
 	case p.check(lexer.TokenEntangle):
 		return p.parseEntangleStmt()
 	default:

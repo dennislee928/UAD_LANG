@@ -1268,7 +1268,9 @@ func (p *Parser) isStmtStart() bool {
 		p.check(lexer.TokenBreak) ||
 		p.check(lexer.TokenContinue) ||
 		p.check(lexer.TokenEmit) ||
-		p.check(lexer.TokenEntangle)
+		p.check(lexer.TokenEntangle) ||
+		p.check(lexer.TokenUse) ||
+		p.check(lexer.TokenBars)
 }
 
 func (p *Parser) current() lexer.Token {

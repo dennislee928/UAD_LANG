@@ -658,6 +658,8 @@ func (i *Interpreter) execStmt(stmt ast.Stmt) error {
 		return nil
 	case *ast.EmitStmt:
 		return i.execEmitStmt(s)
+	case *ast.UseStmt:
+		return i.execUseStmt(s)
 	case *ast.EntangleStmt:
 		return i.execEntangleStmt(s)
 	default:
