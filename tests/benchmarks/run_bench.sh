@@ -147,7 +147,8 @@ opt-level = 3
 lto = true
 EOF
         # Build and copy binary, save rust_dir path for runtime benchmarks
-        rust_cmd="(cd ${rust_dir} && cargo build --release --quiet 2>/dev/null && cp target/release/${scenario} /tmp/${scenario}_rs && echo ${rust_dir} > /tmp/rust_dir_${scenario}) || rustc -O ${rust_file} -o /tmp/${scenario}_rs"
+        # Build command that saves rust_dir only on success
+        rust_cmd="(cd ${rust_dir} && cargo build --release --quiet 2>/dev/null && [ -f target/release/${scenario} ] && cp target/release/${scenario} /tmp/${scenario}_rs && echo ${rust_dir} > /tmp/rust_dir_${scenario} && exit 0) || (rustc -O ${rust_file} -o /tmp/${scenario}_rs 2>/dev/null && exit 0 || exit 1)"
     fi
     
     # Prepare benchmark commands
@@ -176,11 +177,21 @@ EOF
         }
     
     # Ensure Rust binary exists after compile benchmark (if cargo succeeded)
+    # Check if rust_dir was saved, meaning cargo build succeeded
     if [ -f "/tmp/rust_dir_${scenario}" ]; then
         local saved_rust_dir=$(cat "/tmp/rust_dir_${scenario}" 2>/dev/null)
-        if [ -n "${saved_rust_dir}" ] && [ -f "${saved_rust_dir}/target/release/${scenario}" ]; then
-            if [ ! -f "/tmp/${scenario}_rs" ]; then
-                cp "${saved_rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null || true
+        if [ -n "${saved_rust_dir}" ] && [ -d "${saved_rust_dir}" ]; then
+            # Try to copy binary if it exists
+            if [ -f "${saved_rust_dir}/target/release/${scenario}" ]; then
+                if [ ! -f "/tmp/${scenario}_rs" ]; then
+                    cp "${saved_rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null && \
+                    echo -e "${GREEN}Rust binary preserved from compile benchmark${NC}"
+                fi
+            else
+                # Binary doesn't exist, try to rebuild in the same directory
+                echo -e "${YELLOW}Rebuilding Rust binary from saved project...${NC}"
+                (cd "${saved_rust_dir}" && cargo build --release --quiet 2>/dev/null && \
+                 cp target/release/${scenario} /tmp/${scenario}_rs 2>/dev/null) || true
             fi
         fi
     fi
