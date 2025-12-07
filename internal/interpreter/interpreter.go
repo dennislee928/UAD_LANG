@@ -5,6 +5,10 @@ import (
 	"math"
 	"strconv"
 
+	"io/ioutil"
+	"os"
+	"strings"
+
 	"github.com/dennislee928/uad-lang/internal/ast"
 	"github.com/dennislee928/uad-lang/internal/typer"
 )
@@ -105,6 +109,26 @@ func (i *Interpreter) initBuiltins() {
 		
 		"string": NewBuiltinFunction("string", i.builtinString,
 			typer.NewFunctionType([]typer.Type{typer.IntType}, typer.StringType)),
+		
+		// File I/O
+		"read_file": NewBuiltinFunction("read_file", i.builtinReadFile,
+			typer.NewFunctionType([]typer.Type{typer.StringType}, typer.StringType)),
+		"write_file": NewBuiltinFunction("write_file", i.builtinWriteFile,
+			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType}, typer.BoolType)),
+		"file_exists": NewBuiltinFunction("file_exists", i.builtinFileExists,
+			typer.NewFunctionType([]typer.Type{typer.StringType}, typer.BoolType)),
+		
+		// String operations
+		"split": NewBuiltinFunction("split", i.builtinSplit,
+			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType}, typer.StringType)),
+		"join": NewBuiltinFunction("join", i.builtinJoin,
+			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType}, typer.StringType)),
+		"trim": NewBuiltinFunction("trim", i.builtinTrim,
+			typer.NewFunctionType([]typer.Type{typer.StringType}, typer.StringType)),
+		"contains": NewBuiltinFunction("contains", i.builtinContains,
+			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType}, typer.BoolType)),
+		"replace": NewBuiltinFunction("replace", i.builtinReplace,
+			typer.NewFunctionType([]typer.Type{typer.StringType, typer.StringType, typer.StringType}, typer.StringType)),
 	}
 	
 	for name, fn := range builtins {
@@ -268,6 +292,143 @@ func (i *Interpreter) builtinString(interp *Interpreter, args []Value) (Value, e
 		return nil, fmt.Errorf("string expects 1 argument, got %d", len(args))
 	}
 	return NewStringValue(ToString(args[0])), nil
+}
+
+// ==================== File I/O Built-ins ====================
+
+func (i *Interpreter) builtinReadFile(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("read_file expects 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*StringValue)
+	if !ok {
+		return nil, fmt.Errorf("read_file expects string argument")
+	}
+	
+	content, err := ioutil.ReadFile(path.Value)
+	if err != nil {
+		return nil, fmt.Errorf("read_file: %v", err)
+	}
+	
+	return NewStringValue(string(content)), nil
+}
+
+func (i *Interpreter) builtinWriteFile(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("write_file expects 2 arguments, got %d", len(args))
+	}
+	path, ok1 := args[0].(*StringValue)
+	content, ok2 := args[1].(*StringValue)
+	if !ok1 || !ok2 {
+		return nil, fmt.Errorf("write_file expects string arguments")
+	}
+	
+	err := ioutil.WriteFile(path.Value, []byte(content.Value), 0644)
+	if err != nil {
+		return nil, fmt.Errorf("write_file: %v", err)
+	}
+	
+	return NewBoolValue(true), nil
+}
+
+func (i *Interpreter) builtinFileExists(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("file_exists expects 1 argument, got %d", len(args))
+	}
+	path, ok := args[0].(*StringValue)
+	if !ok {
+		return nil, fmt.Errorf("file_exists expects string argument")
+	}
+	
+	_, err := os.Stat(path.Value)
+	exists := !os.IsNotExist(err)
+	
+	return NewBoolValue(exists), nil
+}
+
+// ==================== String Operation Built-ins ====================
+
+func (i *Interpreter) builtinSplit(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("split expects 2 arguments, got %d", len(args))
+	}
+	str, ok1 := args[0].(*StringValue)
+	delim, ok2 := args[1].(*StringValue)
+	if !ok1 || !ok2 {
+		return nil, fmt.Errorf("split expects string arguments")
+	}
+	
+	parts := strings.Split(str.Value, delim.Value)
+	elements := make([]Value, len(parts))
+	for idx, part := range parts {
+		elements[idx] = NewStringValue(part)
+	}
+	
+	return NewArrayValue(elements, typer.StringType), nil
+}
+
+func (i *Interpreter) builtinJoin(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("join expects 2 arguments, got %d", len(args))
+	}
+	arr, ok := args[0].(*ArrayValue)
+	if !ok {
+		return nil, fmt.Errorf("join expects array as first argument")
+	}
+	sep, ok := args[1].(*StringValue)
+	if !ok {
+		return nil, fmt.Errorf("join expects string as second argument")
+	}
+	
+	parts := make([]string, len(arr.Elements))
+	for i, elem := range arr.Elements {
+		parts[i] = ToString(elem)
+	}
+	
+	result := strings.Join(parts, sep.Value)
+	return NewStringValue(result), nil
+}
+
+func (i *Interpreter) builtinTrim(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("trim expects 1 argument, got %d", len(args))
+	}
+	str, ok := args[0].(*StringValue)
+	if !ok {
+		return nil, fmt.Errorf("trim expects string argument")
+	}
+	
+	result := strings.TrimSpace(str.Value)
+	return NewStringValue(result), nil
+}
+
+func (i *Interpreter) builtinContains(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("contains expects 2 arguments, got %d", len(args))
+	}
+	str, ok1 := args[0].(*StringValue)
+	substr, ok2 := args[1].(*StringValue)
+	if !ok1 || !ok2 {
+		return nil, fmt.Errorf("contains expects string arguments")
+	}
+	
+	result := strings.Contains(str.Value, substr.Value)
+	return NewBoolValue(result), nil
+}
+
+func (i *Interpreter) builtinReplace(interp *Interpreter, args []Value) (Value, error) {
+	if len(args) != 3 {
+		return nil, fmt.Errorf("replace expects 3 arguments, got %d", len(args))
+	}
+	str, ok1 := args[0].(*StringValue)
+	old, ok2 := args[1].(*StringValue)
+	new, ok3 := args[2].(*StringValue)
+	if !ok1 || !ok2 || !ok3 {
+		return nil, fmt.Errorf("replace expects string arguments")
+	}
+	
+	result := strings.ReplaceAll(str.Value, old.Value, new.Value)
+	return NewStringValue(result), nil
 }
 
 // ==================== Declaration Execution ====================

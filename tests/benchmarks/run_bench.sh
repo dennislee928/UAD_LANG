@@ -194,6 +194,16 @@ EOF
                  cp target/release/${scenario} /tmp/${scenario}_rs 2>/dev/null) || true
             fi
         fi
+    else
+        # rust_dir not saved, but maybe cargo still built it - check for any rust_bench directories
+        local latest_rust_dir=$(ls -td /tmp/rust_bench_${scenario}_* 2>/dev/null | head -1)
+        if [ -n "${latest_rust_dir}" ] && [ -d "${latest_rust_dir}" ] && [ -f "${latest_rust_dir}/target/release/${scenario}" ]; then
+            if [ ! -f "/tmp/${scenario}_rs" ]; then
+                cp "${latest_rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null && \
+                echo "${latest_rust_dir}" > /tmp/rust_dir_${scenario} && \
+                echo -e "${GREEN}Found and preserved Rust binary from compile benchmark${NC}"
+            fi
+        fi
     fi
     
     echo -e "${GREEN}Compile-time results saved to ${results_file}${NC}"
@@ -258,6 +268,22 @@ run_runtime_bench() {
             fi
         fi
         
+        # If still not built, try to find and use any existing rust_bench directory
+        if [ $rust_built -eq 0 ]; then
+            local latest_rust_dir=$(ls -td /tmp/rust_bench_${scenario}_* 2>/dev/null | head -1)
+            if [ -n "${latest_rust_dir}" ] && [ -d "${latest_rust_dir}" ] && command -v cargo &> /dev/null; then
+                # Try to rebuild in existing directory
+                if (cd "${latest_rust_dir}" && cargo build --release --quiet 2>/dev/null); then
+                    if [ -f "${latest_rust_dir}/target/release/${scenario}" ]; then
+                        if cp "${latest_rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
+                            echo "${latest_rust_dir}" > /tmp/rust_dir_${scenario}
+                            rust_built=1
+                        fi
+                    fi
+                fi
+            fi
+        fi
+        
         # If still not built, create new cargo project
         if [ $rust_built -eq 0 ] && command -v cargo &> /dev/null; then
             rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
@@ -278,9 +304,11 @@ opt-level = 3
 lto = true
 EOF
             if (cd "${rust_dir}" && cargo build --release --quiet 2>/dev/null); then
-                if cp "${rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
-                    echo "${rust_dir}" > "/tmp/rust_dir_${scenario}"
-                    rust_built=1
+                if [ -f "${rust_dir}/target/release/${scenario}" ]; then
+                    if cp "${rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
+                        echo "${rust_dir}" > "/tmp/rust_dir_${scenario}"
+                        rust_built=1
+                    fi
                 fi
             fi
         fi
@@ -296,9 +324,12 @@ EOF
             benchmarks+=("/tmp/${scenario}_rs")
         else
             echo -e "${RED}Warning: Failed to build Rust binary${NC}"
-            echo -e "${YELLOW}This may be due to LLVM version mismatch. Try:${NC}"
-            echo -e "  ${YELLOW}rustup update${NC}"
-            echo -e "  ${YELLOW}Or use cargo instead of rustc (already attempted)${NC}"
+            echo -e "${YELLOW}This is likely due to LLVM version mismatch between Rust and system LLVM.${NC}"
+            echo -e "${YELLOW}Solutions:${NC}"
+            echo -e "  1. Install/update rustup: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+            echo -e "  2. Update Rust: rustup update"
+            echo -e "  3. Reinstall Rust to match system LLVM version"
+            echo -e "${YELLOW}Benchmark will continue without Rust runtime comparison.${NC}"
         fi
     else
         benchmarks+=("/tmp/${scenario}_rs")
