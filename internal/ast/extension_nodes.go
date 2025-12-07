@@ -93,6 +93,27 @@ type MotifDeclNode struct {
 func (m *MotifDeclNode) declNode() {}
 func (m *MotifDeclNode) musicalNode() {}
 
+// EmitStmt represents an emit statement for events.
+// Emits an event of a specific type with given fields.
+// Syntax: `emit <TypeName> { <fields>... };`
+type EmitStmt struct {
+	baseNode
+	TypeName *Ident          // Event type name (e.g., "Event")
+	Fields   *StructLiteral  // Event fields as struct literal
+}
+
+func (e *EmitStmt) stmtNode() {}
+func (e *EmitStmt) musicalNode() {}
+
+// NewEmitStmt creates a new emit statement.
+func NewEmitStmt(typeName *Ident, fields *StructLiteral, span common.Span) *EmitStmt {
+	return &EmitStmt{
+		baseNode: baseNode{span},
+		TypeName: typeName,
+		Fields:   fields,
+	}
+}
+
 // MotifUseNode represents the use/instantiation of a motif.
 // Applies a motif at a specific bar range.
 // Planned syntax: `use motif <name> at bars <range>`

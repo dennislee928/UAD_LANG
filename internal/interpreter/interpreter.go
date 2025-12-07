@@ -634,6 +634,8 @@ func (i *Interpreter) execStmt(stmt ast.Stmt) error {
 	case *ast.ContinueStmt:
 		i.continueFlag = true
 		return nil
+	case *ast.EmitStmt:
+		return i.execEmitStmt(s)
 	default:
 		return fmt.Errorf("unknown statement type: %T", s)
 	}
@@ -806,6 +808,34 @@ func (i *Interpreter) execForStmt(stmt *ast.ForStmt) error {
 		}
 	}
 	
+	return nil
+}
+
+// execEmitStmt executes an emit statement.
+// For now, this evaluates the event struct and prints it.
+func (i *Interpreter) execEmitStmt(stmt *ast.EmitStmt) error {
+	// Evaluate the struct literal to create the event value
+	eventValue, err := i.evalStructLiteral(stmt.Fields)
+	if err != nil {
+		return err
+	}
+
+	// Format and output the event
+	// For now, we'll print the event information
+	structVal, ok := eventValue.(*StructValue)
+	if !ok {
+		return fmt.Errorf("emit statement requires a struct value")
+	}
+
+	// Build event string representation
+	var fields []string
+	for fieldName, fieldValue := range structVal.Fields {
+		fields = append(fields, fmt.Sprintf("%s: %s", fieldName, ToString(fieldValue)))
+	}
+
+	eventStr := fmt.Sprintf("[Event: %s] %s", stmt.TypeName.Name, strings.Join(fields, ", "))
+	fmt.Println(eventStr)
+
 	return nil
 }
 

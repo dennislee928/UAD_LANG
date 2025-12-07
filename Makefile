@@ -7,6 +7,7 @@ UADVM := $(BINARY_DIR)/uadvm
 UADREPL := $(BINARY_DIR)/uadrepl
 UADI := $(BINARY_DIR)/uadi
 UADRUNNER := $(BINARY_DIR)/uad-runner
+UAD := $(BINARY_DIR)/uad
 
 GO := go
 GOFLAGS := -v
@@ -16,7 +17,7 @@ LDFLAGS := -s -w
 all: build
 
 # Build all binaries
-build: $(UADC) $(UADVM) $(UADREPL) $(UADI) $(UADRUNNER)
+build: $(UADC) $(UADVM) $(UADREPL) $(UADI) $(UADRUNNER) $(UAD)
 
 # Build compiler
 $(UADC): 
@@ -47,6 +48,12 @@ $(UADRUNNER):
 	@echo "Building uad-runner..."
 	@mkdir -p $(BINARY_DIR)
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADRUNNER) ./cmd/uad-runner
+
+# Build Unified CLI
+$(UAD):
+	@echo "Building unified CLI..."
+	@mkdir -p $(BINARY_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UAD) ./cmd/uad
 
 # Build LSP Server
 UADLSP := $(BINARY_DIR)/uad-lsp
@@ -97,6 +104,24 @@ install: build
 	$(GO) install ./cmd/uadrepl
 	$(GO) install ./cmd/uadi
 	$(GO) install ./cmd/uad-runner
+	$(GO) install ./cmd/uad
+
+# Install unified CLI to /usr/local/bin (requires sudo)
+install-cli: $(UAD)
+	@echo "Installing uad to /usr/local/bin..."
+	@cp $(UAD) /usr/local/bin/uad
+	@echo "✓ Installed. Run 'uad help' to get started"
+
+# Test the CLI
+test-cli: $(UAD)
+	@echo "Testing unified CLI..."
+	$(UAD) --help
+	@echo ""
+	@echo "Testing run command..."
+	$(UAD) run examples/stdlib/minimal_test.uad
+	@echo ""
+	@echo "Testing test command..."
+	$(UAD) test examples/stdlib/
 
 # Format code
 fmt:

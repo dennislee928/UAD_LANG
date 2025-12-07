@@ -384,6 +384,48 @@ func (p *Parser) parseResonanceDecl() (ast.Decl, error) {
 	return ast.NewResonanceRuleNode(condition, action, span), nil
 }
 
+// ==================== Emit Statement Parsing (M2.3) ====================
+
+// parseEmitStmt parses an emit statement.
+// Syntax: emit <TypeName> { <field>: <value>, ... };
+func (p *Parser) parseEmitStmt() (ast.Stmt, error) {
+	start := p.current().Span.Start
+	p.consume(lexer.TokenEmit, "expected 'emit'")
+
+	// Parse type name
+	typeName := p.parseIdent()
+	if typeName == nil {
+		return nil, p.error("expected event type name after 'emit'")
+	}
+
+	// Parse struct literal
+	if !p.check(lexer.TokenLBrace) {
+		return nil, p.error("expected '{' after type name in emit statement")
+	}
+
+	structLiteral, err := p.parseStructLiteralWithName(typeName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Consume semicolon
+	p.consume(lexer.TokenSemicolon, "expected ';' after emit statement")
+
+	end := p.previous().Span.End
+	span := common.Span{
+		File:  p.file,
+		Start: start,
+		End:   end,
+	}
+
+	structLit, ok := structLiteral.(*ast.StructLiteral)
+	if !ok {
+		return nil, p.error("expected struct literal in emit statement")
+	}
+
+	return ast.NewEmitStmt(typeName, structLit, span), nil
+}
+
 // ==================== Entanglement Parsing (M2.5) ====================
 
 // parseEntangleStmt parses an entangle statement.
@@ -449,6 +491,8 @@ func (p *Parser) ParseDeclExtension() (ast.Decl, error) {
 // Returns nil if the token doesn't match any extension statement.
 func (p *Parser) ParseStmtExtension() (ast.Stmt, error) {
 	switch {
+	case p.check(lexer.TokenEmit):
+		return p.parseEmitStmt()
 	case p.check(lexer.TokenEntangle):
 		return p.parseEntangleStmt()
 	default:

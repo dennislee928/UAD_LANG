@@ -866,7 +866,18 @@ func (p *Parser) parseStructLiteralWithName(name *ast.Ident) (ast.Expr, error) {
 	
 	for !p.check(lexer.TokenRBrace) && !p.isAtEnd() {
 		fieldStart := p.current().Span.Start
-		fieldName := p.parseIdent()
+		// In struct literals, keywords can be used as field names
+		var fieldName *ast.Ident
+		if p.check(lexer.TokenIdent) {
+			fieldName = p.parseIdent()
+		} else {
+			// Try to parse keyword as identifier (e.g., "type" as field name)
+			tok := p.current()
+			if lexer.IsKeyword(tok.Type) {
+				p.advance()
+				fieldName = ast.NewIdent(tok.Lexeme, tok.Span)
+			}
+		}
 		if fieldName == nil {
 			return nil, p.error("expected field name")
 		}
@@ -1247,7 +1258,9 @@ func (p *Parser) isStmtStart() bool {
 		p.check(lexer.TokenWhile) ||
 		p.check(lexer.TokenFor) ||
 		p.check(lexer.TokenBreak) ||
-		p.check(lexer.TokenContinue)
+		p.check(lexer.TokenContinue) ||
+		p.check(lexer.TokenEmit) ||
+		p.check(lexer.TokenEntangle)
 }
 
 func (p *Parser) current() lexer.Token {
