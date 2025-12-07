@@ -1,4 +1,4 @@
-.PHONY: all build test clean run-examples install fmt lint help
+.PHONY: all build test clean run-examples install fmt lint help benchmark
 
 # Variables
 BINARY_DIR := bin
@@ -6,6 +6,7 @@ UADC := $(BINARY_DIR)/uadc
 UADVM := $(BINARY_DIR)/uadvm
 UADREPL := $(BINARY_DIR)/uadrepl
 UADI := $(BINARY_DIR)/uadi
+UADRUNNER := $(BINARY_DIR)/uad-runner
 
 GO := go
 GOFLAGS := -v
@@ -15,7 +16,7 @@ LDFLAGS := -s -w
 all: build
 
 # Build all binaries
-build: $(UADC) $(UADVM) $(UADREPL) $(UADI)
+build: $(UADC) $(UADVM) $(UADREPL) $(UADI) $(UADRUNNER)
 
 # Build compiler
 $(UADC): 
@@ -40,6 +41,12 @@ $(UADI):
 	@echo "Building uadi (interpreter)..."
 	@mkdir -p $(BINARY_DIR)
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADI) ./cmd/uadi
+
+# Build Experiment Runner
+$(UADRUNNER):
+	@echo "Building uad-runner..."
+	@mkdir -p $(BINARY_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADRUNNER) ./cmd/uad-runner
 
 # Run tests
 test:
@@ -80,6 +87,7 @@ install: build
 	$(GO) install ./cmd/uadvm
 	$(GO) install ./cmd/uadrepl
 	$(GO) install ./cmd/uadi
+	$(GO) install ./cmd/uad-runner
 
 # Format code
 fmt:
@@ -121,11 +129,33 @@ dev-setup:
 	@echo "Setting up development environment..."
 	@bash scripts/dev_setup.sh
 
-# Experiment runner
-experiment:
-	@echo "Running experiments..."
-	@echo "⚠️  Experiment runner not yet implemented (M6.2)"
-	@echo "Placeholder for: ./bin/uad-runner --config experiments/configs/..."
+# Run experiments
+run-experiments: build
+	@echo "Running all experiments..."
+	@for config in experiments/configs/*.yaml; do \
+		echo ""; \
+		echo "Running experiment: $$config"; \
+		./bin/uad-runner -config $$config; \
+	done
+
+# Run specific experiment
+experiment: build
+	@if [ -z "$(CONFIG)" ]; then \
+		echo "Usage: make experiment CONFIG=experiments/configs/erh_demo.yaml"; \
+		exit 1; \
+	fi
+	@echo "Running experiment: $(CONFIG)"
+	./bin/uad-runner -config $(CONFIG)
+
+# Run benchmarks
+benchmark: build
+	@if [ -z "$(SCENARIO)" ]; then \
+		echo "Running benchmark for scenario1..."; \
+		./run_bench.sh scenario1; \
+	else \
+		echo "Running benchmark for $(SCENARIO)..."; \
+		./run_bench.sh $(SCENARIO); \
+	fi
 
 # Help
 help:
@@ -147,9 +177,11 @@ help:
 	@echo "  dev-setup     - Setup development environment"
 	@echo ""
 	@echo "Execution Targets:"
-	@echo "  run-examples  - Run all example programs"
-	@echo "  example       - Run a specific example (make example FILE=path/to/file.uad)"
-	@echo "  experiment    - Run experiments (M6.2 - not yet implemented)"
+	@echo "  run-examples    - Run all example programs"
+	@echo "  example         - Run a specific example (make example FILE=path/to/file.uad)"
+	@echo "  run-experiments - Run all experiments"
+	@echo "  experiment      - Run specific experiment (make experiment CONFIG=path/to/config.yaml)"
+	@echo "  benchmark       - Run benchmarks (make benchmark SCENARIO=scenario1)"
 	@echo ""
 	@echo "Documentation Targets:"
 	@echo "  docs          - Show documentation locations"
