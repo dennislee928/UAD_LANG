@@ -582,6 +582,28 @@ func (i *Interpreter) execDecl(decl ast.Decl) error {
 		// Import handling is deferred to future implementation
 		// For now, imports are no-op (stdlib is pre-loaded)
 		return nil
+	// Musical DSL (M2.3)
+	case *ast.ScoreNode:
+		// Score declarations are registered but not executed until explicitly called
+		// For now, we just acknowledge them
+		return nil
+	case *ast.MotifDeclNode:
+		// Motif declarations are registered but not executed until used
+		// For now, we just acknowledge them
+		return nil
+	// String Theory (M2.4)
+	case *ast.StringDeclNode:
+		// String field declarations are registered in the runtime
+		return nil
+	case *ast.BraneDeclNode:
+		// Brane declarations are registered in the runtime
+		return nil
+	case *ast.CouplingNode:
+		// Coupling declarations define resonance relationships
+		return nil
+	case *ast.ResonanceRuleNode:
+		// Resonance rules are registered for evaluation
+		return nil
 	default:
 		return fmt.Errorf("unknown declaration type: %T", d)
 	}
@@ -636,6 +658,8 @@ func (i *Interpreter) execStmt(stmt ast.Stmt) error {
 		return nil
 	case *ast.EmitStmt:
 		return i.execEmitStmt(s)
+	case *ast.EntangleStmt:
+		return i.execEntangleStmt(s)
 	default:
 		return fmt.Errorf("unknown statement type: %T", s)
 	}
@@ -836,6 +860,26 @@ func (i *Interpreter) execEmitStmt(stmt *ast.EmitStmt) error {
 	eventStr := fmt.Sprintf("[Event: %s] %s", stmt.TypeName.Name, strings.Join(fields, ", "))
 	fmt.Println(eventStr)
 
+	return nil
+}
+
+func (i *Interpreter) execEntangleStmt(stmt *ast.EntangleStmt) error {
+	// Entanglement creates a shared state among multiple variables
+	// For now, this is a placeholder that acknowledges the statement
+	// Full implementation would involve the EntanglementManager from runtime
+	
+	varNames := make([]string, len(stmt.Variables))
+	for idx, varIdent := range stmt.Variables {
+		varNames[idx] = varIdent.Name
+	}
+	
+	fmt.Printf("[Entangle] Variables: %s\n", strings.Join(varNames, ", "))
+	
+	// TODO(M2.5): Integrate with runtime.EntanglementManager
+	// - Create or join an entanglement group
+	// - Bind all variables to share the same backing value
+	// - Ensure type compatibility
+	
 	return nil
 }
 

@@ -37,8 +37,19 @@ func (p *Parser) parseScoreDecl() (ast.Decl, error) {
 				return nil, err
 			}
 			tracks = append(tracks, track)
+		} else if p.check(lexer.TokenIdent) {
+			// Skip metadata fields like "tempo: 120,"
+			p.advance() // field name
+			if p.match(lexer.TokenColon) {
+				// Skip the value expression
+				_, err := p.parseExpr()
+				if err != nil {
+					return nil, err
+				}
+				p.match(lexer.TokenComma) // optional comma
+			}
 		} else {
-			return nil, p.error("expected 'track' in score body")
+			return nil, p.error("expected 'track' or metadata field in score body")
 		}
 	}
 
@@ -126,8 +137,7 @@ func (p *Parser) parseBarRangeNode() (*ast.BarRangeNode, error) {
 		return nil, p.error("invalid end bar number")
 	}
 
-	p.consume(lexer.TokenLBrace, "expected '{'")
-
+	// parseBlockExpr will consume the '{'
 	body, err := p.parseBlockExpr()
 	if err != nil {
 		return nil, err
@@ -174,8 +184,7 @@ func (p *Parser) parseMotifDecl() (ast.Decl, error) {
 		p.consume(lexer.TokenRParen, "expected ')' after parameters")
 	}
 
-	p.consume(lexer.TokenLBrace, "expected '{'")
-
+	// parseBlockExpr will consume the '{'
 	body, err := p.parseBlockExpr()
 	if err != nil {
 		return nil, err
@@ -366,8 +375,7 @@ func (p *Parser) parseResonanceDecl() (ast.Decl, error) {
 		return nil, err
 	}
 
-	p.consume(lexer.TokenLBrace, "expected '{' after resonance condition")
-
+	// parseBlockExpr will consume the '{'
 	action, err := p.parseBlockExpr()
 	if err != nil {
 		return nil, err
@@ -451,6 +459,8 @@ func (p *Parser) parseEntangleStmt() (ast.Stmt, error) {
 		return nil, p.error("entangle requires at least 2 variables")
 	}
 
+	p.consume(lexer.TokenSemicolon, "expected ';' after entangle statement")
+
 	end := p.previous().Span.End
 
 	span := common.Span{
@@ -533,7 +543,16 @@ func (p *Parser) parseParam() (*ast.Param, error) {
 func (p *Parser) parseField() (*ast.Field, error) {
 	start := p.current().Span.Start
 	
-	name := p.parseIdent()
+	// Allow keywords as field names (similar to struct literals)
+	var name *ast.Ident
+	if p.check(lexer.TokenIdent) {
+		name = p.parseIdent()
+	} else if lexer.IsKeyword(p.current().Type) {
+		tok := p.current()
+		p.advance()
+		name = ast.NewIdent(tok.Lexeme, tok.Span)
+	}
+	
 	if name == nil {
 		return nil, p.error("expected field name")
 	}
