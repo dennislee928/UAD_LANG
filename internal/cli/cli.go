@@ -83,7 +83,7 @@ func Execute(args []string) error {
 }
 
 func showHelp(w io.Writer) error {
-	help := `UAD - Universal Adversarial Dynamics Language
+	help := `UAD - Un Avec Deux -Composing Oriented Language
 
 Usage:
   uad <command> [options] [arguments]

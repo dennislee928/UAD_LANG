@@ -1,6 +1,6 @@
 fn main() -> Int {
     let filename = "test_output.txt";
-    let content = "Hello from UAD!";
+    let content = "UAD fin";
     
     let write_ok = write_file(filename, content);
     println("Write file: OK");
