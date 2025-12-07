@@ -7,6 +7,9 @@
 ### 步驟 1: 確保解釋器已編譯
 
 ```bash
+# 切換到專案根目錄
+cd /Users/lipeichen/Documents/Untitled/UAD_Programming
+
 # 編譯解釋器
 go build -o bin/uadi ./cmd/uadi
 
@@ -16,8 +19,28 @@ make build
 
 ### 步驟 2: 使用解釋器執行
 
+根據你目前所在的目錄，使用適當的路徑：
+
+#### 從專案根目錄執行：
+
 ```bash
-./bin/uadi -i <檔案路徑>.uad
+cd /Users/lipeichen/Documents/Untitled/UAD_Programming
+./bin/uadi -i examples/core/hello_world.uad
+```
+
+#### 從 `examples` 目錄執行：
+
+```bash
+cd /Users/lipeichen/Documents/Untitled/UAD_Programming/examples
+../bin/uadi -i core/hello_world.uad
+# 或使用相對路徑
+../bin/uadi -i showcase/musical_score.uad
+```
+
+#### 使用絕對路徑（從任何目錄）：
+
+```bash
+/Users/lipeichen/Documents/Untitled/UAD_Programming/bin/uadi -i /Users/lipeichen/Documents/Untitled/UAD_Programming/examples/core/hello_world.uad
 ```
 
 ## 執行範例

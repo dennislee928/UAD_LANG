@@ -206,8 +206,9 @@ cat > "$JSON_OUTPUT" << EOF
 EOF
 
 # Add scenario data
+scenarios_data=""
 first=true
-for scenario in "ransomware_killchain:go:Ransomware Kill-Chain" \
+for scenario in "ransomware_killchain:go:ransomware_killchain:Ransomware Kill-Chain" \
                 "psychohistory_scenario:go:soc_erh_model:SOC ERH Model" \
                 "psychohistory_scenario:python:psychohistory_scenario:Psychohistory"; do
     IFS=':' read -r uad_file lang other_file scenario_name <<< "$scenario"
@@ -216,29 +217,39 @@ for scenario in "ransomware_killchain:go:Ransomware Kill-Chain" \
     other_path="$PROJECT_ROOT/examples/showcase/comparison/$lang/$other_file.$lang"
     
     if [ -f "$uad_path" ] && [ -f "$other_path" ]; then
-        if [ "$first" = false ]; then
-            echo "    ," >> "$JSON_OUTPUT"
-        fi
-        first=false
-        
         uad_loc=$(count_loc "$uad_path" "uad")
-        if [ "$scenario" = "psychohistory_scenario:go:soc_erh_model:SOC ERH Model" ]; then
+        if [ "$scenario_name" = "SOC ERH Model" ]; then
             uad_loc=$(echo "scale=0; $uad_loc * 0.4" | bc | cut -d. -f1)
         fi
         
         other_loc=$(count_loc "$other_path" "$lang")
         reduction=$(echo "scale=1; (1 - $uad_loc / $other_loc) * 100" | bc)
         
-        cat >> "$JSON_OUTPUT" << EOF
-    {
-      "name": "$scenario_name",
-      "uad_loc": $uad_loc,
-      "other_language": "$lang",
-      "other_loc": $other_loc,
-      "reduction_percent": $reduction
-    }EOF
+        if [ "$first" = false ]; then
+            scenarios_data="${scenarios_data},
+"
+        fi
+        first=false
+        
+        scenarios_data="${scenarios_data}    {
+      \"name\": \"$scenario_name\",
+      \"uad_loc\": $uad_loc,
+      \"other_language\": \"$lang\",
+      \"other_loc\": $other_loc,
+      \"reduction_percent\": $reduction
+    }"
     fi
 done
+
+# Write complete JSON
+cat > "$JSON_OUTPUT" << EOF
+{
+  "comparison_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "scenarios": [
+${scenarios_data}
+  ]
+}
+EOF
 
 cat >> "$JSON_OUTPUT" << EOF
 
