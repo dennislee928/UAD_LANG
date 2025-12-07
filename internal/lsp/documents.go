@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/dennislee928/uad-lang/internal/ast"
+	"github.com/dennislee928/uad-lang/internal/lsp/protocol"
 )
 
 // Document represents an open document in the editor
@@ -16,7 +17,7 @@ type Document struct {
 	AST *ast.Module
 	
 	// Analysis results
-	Diagnostics []Diagnostic
+	Diagnostics []protocol.Diagnostic
 }
 
 // DocumentManager manages all open documents

@@ -124,10 +124,12 @@ run_compile_bench() {
     
     # Try to use cargo for Rust if available (more reliable than rustc)
     # Cargo handles LLVM version issues better
+    # Store rust_dir for later use in runtime benchmarks
+    local rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
     local rust_cmd="rustc -O ${rust_file} -o /tmp/${scenario}_rs"
+    
     if command -v cargo &> /dev/null; then
         # Create a temporary Cargo project for Rust
-        local rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
         mkdir -p "${rust_dir}/src"
         cp "${rust_file}" "${rust_dir}/src/main.rs"
         cat > "${rust_dir}/Cargo.toml" <<EOF
@@ -144,7 +146,8 @@ path = "src/main.rs"
 opt-level = 3
 lto = true
 EOF
-        rust_cmd="(cd ${rust_dir} && cargo build --release --quiet 2>/dev/null && cp target/release/${scenario} /tmp/${scenario}_rs) || rustc -O ${rust_file} -o /tmp/${scenario}_rs"
+        # Build and copy binary, save rust_dir path for runtime benchmarks
+        rust_cmd="(cd ${rust_dir} && cargo build --release --quiet 2>/dev/null && cp target/release/${scenario} /tmp/${scenario}_rs && echo ${rust_dir} > /tmp/rust_dir_${scenario}) || rustc -O ${rust_file} -o /tmp/${scenario}_rs"
     fi
     
     # Prepare benchmark commands
@@ -160,16 +163,27 @@ EOF
     bench_commands+=("${rust_cmd}")
     
     # Run benchmarks with ignore-failure to continue even if some fail
+    # Note: Don't delete Rust binary in setup, we want to keep it for runtime benchmarks
     echo -e "${YELLOW}Note: UAD compiler may fail if not fully implemented - this is expected${NC}"
     hyperfine \
         --warmup 3 \
         --min-runs 10 \
         --export-json "${results_file}" \
         --ignore-failure \
-        --setup "rm -f /tmp/${scenario}_*" \
+        --setup "rm -f /tmp/${scenario}_uad.uadir /tmp/${scenario}_go" \
         "${bench_commands[@]}" 2>&1 || {
             echo -e "${YELLOW}Note: Some compile benchmarks failed (this is expected if UAD compiler is not fully implemented)${NC}"
         }
+    
+    # Ensure Rust binary exists after compile benchmark (if cargo succeeded)
+    if [ -f "/tmp/rust_dir_${scenario}" ]; then
+        local saved_rust_dir=$(cat "/tmp/rust_dir_${scenario}" 2>/dev/null)
+        if [ -n "${saved_rust_dir}" ] && [ -f "${saved_rust_dir}/target/release/${scenario}" ]; then
+            if [ ! -f "/tmp/${scenario}_rs" ]; then
+                cp "${saved_rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null || true
+            fi
+        fi
+    fi
     
     echo -e "${GREEN}Compile-time results saved to ${results_file}${NC}"
     echo ""
@@ -203,14 +217,39 @@ run_runtime_bench() {
         benchmarks+=("/tmp/${scenario}_go")
     fi
     
-    # Rust binary - try cargo first, then rustc
+    # Rust binary - try to reuse from compile benchmark, or build fresh
     if [ ! -f "/tmp/${scenario}_rs" ]; then
         echo -e "${YELLOW}Building Rust binary...${NC}"
         local rust_built=0
         
-        # Try cargo build (more reliable, handles LLVM issues better)
-        if command -v cargo &> /dev/null; then
-            local rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
+        # Check if we have a rust_dir from compile benchmark
+        local rust_dir=""
+        if [ -f "/tmp/rust_dir_${scenario}" ]; then
+            rust_dir=$(cat "/tmp/rust_dir_${scenario}" 2>/dev/null)
+        fi
+        
+        # If we have a rust_dir, try to use existing build or rebuild
+        if [ -n "${rust_dir}" ] && [ -d "${rust_dir}" ] && command -v cargo &> /dev/null; then
+            # Try to copy existing binary first
+            if [ -f "${rust_dir}/target/release/${scenario}" ]; then
+                if cp "${rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
+                    rust_built=1
+                fi
+            fi
+            
+            # If copy failed, rebuild
+            if [ $rust_built -eq 0 ]; then
+                if (cd "${rust_dir}" && cargo build --release --quiet 2>/dev/null); then
+                    if cp "${rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
+                        rust_built=1
+                    fi
+                fi
+            fi
+        fi
+        
+        # If still not built, create new cargo project
+        if [ $rust_built -eq 0 ] && command -v cargo &> /dev/null; then
+            rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
             mkdir -p "${rust_dir}/src"
             cp "${BENCH_DIR}/rust/${scenario}.rs" "${rust_dir}/src/main.rs"
             cat > "${rust_dir}/Cargo.toml" <<EOF
@@ -229,6 +268,7 @@ lto = true
 EOF
             if (cd "${rust_dir}" && cargo build --release --quiet 2>/dev/null); then
                 if cp "${rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
+                    echo "${rust_dir}" > "/tmp/rust_dir_${scenario}"
                     rust_built=1
                 fi
             fi

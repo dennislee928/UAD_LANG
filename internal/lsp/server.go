@@ -10,6 +10,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/dennislee928/uad-lang/internal/lsp/completion"
+	"github.com/dennislee928/uad-lang/internal/lsp/hover"
 	"github.com/dennislee928/uad-lang/internal/lsp/protocol"
 )
 
@@ -24,6 +26,12 @@ type Server struct {
 	
 	// Analysis
 	analyzer *Analyzer
+	
+	// Completion
+	completionEngine *completion.Engine
+	
+	// Hover
+	hoverProvider *hover.Provider
 	
 	// Mutex for thread safety
 	mu sync.RWMutex
@@ -41,10 +49,12 @@ func NewServer() *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	return &Server{
-		documents: NewDocumentManager(),
-		analyzer:  NewAnalyzer(),
-		ctx:       ctx,
-		cancel:    cancel,
+		documents:        NewDocumentManager(),
+		analyzer:         NewAnalyzer(),
+		completionEngine: completion.NewEngine(),
+		hoverProvider:    hover.NewProvider(),
+		ctx:              ctx,
+		cancel:           cancel,
 	}
 }
 
@@ -360,17 +370,145 @@ func (s *Server) handleDidClose(params map[string]interface{}) {
 func (s *Server) handleCompletion(id interface{}, params map[string]interface{}) (map[string]interface{}, error) {
 	log.Println("Completion request received")
 	
-	// TODO: Implement completion
-	items := []interface{}{}
+	// Extract position
+	textDocument, ok := params["textDocument"].(map[string]interface{})
+	if !ok {
+		return s.successResponse(id, []interface{}{}), nil
+	}
 	
-	return s.successResponse(id, items), nil
+	uri, _ := textDocument["uri"].(string)
+	position, _ := params["position"].(map[string]interface{})
+	line := int(position["line"].(float64))
+	character := int(position["character"].(float64))
+	
+	// Get document
+	doc, exists := s.documents.GetDocument(uri)
+	if !exists {
+		return s.successResponse(id, []interface{}{}), nil
+	}
+	
+	// Get completions
+	completionItems := s.completionEngine.Complete(doc, line, character)
+	
+	// Convert to LSP format
+	lspItems := make([]interface{}, len(completionItems))
+	for i, item := range completionItems {
+		lspItems[i] = map[string]interface{}{
+			"label":         item.Label,
+			"kind":          item.Kind,
+			"detail":        item.Detail,
+			"documentation": item.Documentation,
+			"insertText":    item.InsertText,
+		}
+	}
+	
+	log.Printf("Returning %d completion items", len(lspItems))
+	
+	return s.successResponse(id, lspItems), nil
 }
 
 // handleHover handles textDocument/hover request
 func (s *Server) handleHover(id interface{}, params map[string]interface{}) (map[string]interface{}, error) {
 	log.Println("Hover request received")
 	
-	// TODO: Implement hover
-	return s.successResponse(id, nil), nil
+	// Extract position
+	textDocument, ok := params["textDocument"].(map[string]interface{})
+	if !ok {
+		return s.successResponse(id, nil), nil
+	}
+	
+	uri, _ := textDocument["uri"].(string)
+	position, _ := params["position"].(map[string]interface{})
+	line := int(position["line"].(float64))
+	character := int(position["character"].(float64))
+	
+	// Get document
+	doc, exists := s.documents.GetDocument(uri)
+	if !exists || doc.AST == nil {
+		return s.successResponse(id, nil), nil
+	}
+	
+	// Get hover info
+	hoverInfo := s.hoverProvider.GetHover(doc.AST, line, character)
+	if hoverInfo == nil {
+		return s.successResponse(id, nil), nil
+	}
+	
+	// Convert to LSP format
+	result := map[string]interface{}{
+		"contents": map[string]interface{}{
+			"kind":  "markdown",
+			"value": hoverInfo.Contents,
+		},
+	}
+	
+	if hoverInfo.Range != nil {
+		result["range"] = map[string]interface{}{
+			"start": map[string]interface{}{
+				"line":      hoverInfo.Range.Start.Line,
+				"character": hoverInfo.Range.Start.Character,
+			},
+			"end": map[string]interface{}{
+				"line":      hoverInfo.Range.End.Line,
+				"character": hoverInfo.Range.End.Character,
+			},
+		}
+	}
+	
+	return s.successResponse(id, result), nil
+}
+
+// analyzeAndPublishDiagnostics analyzes a document and publishes diagnostics
+func (s *Server) analyzeAndPublishDiagnostics(uri string) {
+	doc, exists := s.documents.GetDocument(uri)
+	if !exists {
+		return
+	}
+	
+	// Analyze document
+	diagnostics := s.analyzer.Analyze(doc)
+	
+	// Store diagnostics in document
+	doc.Diagnostics = diagnostics
+	
+	// Publish diagnostics to client
+	s.publishDiagnostics(uri, diagnostics)
+}
+
+// publishDiagnostics sends diagnostics to the client
+func (s *Server) publishDiagnostics(uri string, diagnostics []protocol.Diagnostic) {
+	// Convert diagnostics to LSP format
+	lspDiagnostics := make([]interface{}, len(diagnostics))
+	for i, diag := range diagnostics {
+		lspDiagnostics[i] = map[string]interface{}{
+			"range": map[string]interface{}{
+				"start": map[string]interface{}{
+					"line":      diag.Range.Start.Line,
+					"character": diag.Range.Start.Character,
+				},
+				"end": map[string]interface{}{
+					"line":      diag.Range.End.Line,
+					"character": diag.Range.End.Character,
+				},
+			},
+			"severity": diag.Severity,
+			"source":   diag.Source,
+			"message":  diag.Message,
+		}
+	}
+	
+	notification := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "textDocument/publishDiagnostics",
+		"params": map[string]interface{}{
+			"uri":         uri,
+			"diagnostics": lspDiagnostics,
+		},
+	}
+	
+	// Send notification to stdout
+	if err := s.sendMessage(os.Stdout, notification); err != nil {
+		log.Printf("Error publishing diagnostics: %v", err)
+	}
 }
 

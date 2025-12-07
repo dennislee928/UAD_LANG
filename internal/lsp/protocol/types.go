@@ -46,3 +46,34 @@ const (
 	CompletionItemKindTypeParameter CompletionItemKind = 25
 )
 
+// Diagnostic represents a diagnostic message
+type Diagnostic struct {
+	Range    Range
+	Severity DiagnosticSeverity
+	Code     string
+	Source   string
+	Message  string
+}
+
+// DiagnosticSeverity levels
+type DiagnosticSeverity int
+
+const (
+	DiagnosticSeverityError       DiagnosticSeverity = 1
+	DiagnosticSeverityWarning     DiagnosticSeverity = 2
+	DiagnosticSeverityInformation DiagnosticSeverity = 3
+	DiagnosticSeverityHint        DiagnosticSeverity = 4
+)
+
+// Range in a document
+type Range struct {
+	Start Position
+	End   Position
+}
+
+// Position in a document
+type Position struct {
+	Line      int
+	Character int
+}
+
