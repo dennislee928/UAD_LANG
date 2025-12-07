@@ -64,12 +64,22 @@ run-examples: build
 	@echo "Running examples..."
 	@bash scripts/run_examples.sh
 
+# Run a specific example
+example: build
+	@if [ -z "$(FILE)" ]; then \
+		echo "Usage: make example FILE=examples/core/hello_world.uad"; \
+		exit 1; \
+	fi
+	@echo "Running $(FILE)..."
+	./bin/uadi -i $(FILE)
+
 # Install binaries to GOPATH/bin
 install: build
 	@echo "Installing binaries..."
 	$(GO) install ./cmd/uadc
 	$(GO) install ./cmd/uadvm
 	$(GO) install ./cmd/uadrepl
+	$(GO) install ./cmd/uadi
 
 # Format code
 fmt:
@@ -81,6 +91,19 @@ lint:
 	@echo "Running linter..."
 	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; exit 1)
 	golangci-lint run ./...
+
+# Generate documentation
+docs:
+	@echo "Generating documentation..."
+	@echo "📚 Documentation available in docs/"
+	@echo "  - docs/ARCHITECTURE.md - System architecture"
+	@echo "  - docs/REPO_SNAPSHOT.md - Project status"
+	@echo "  - docs/LANGUAGE_SPEC.md - Language specification"
+	@echo "  - docs/specs/ - Formal specifications"
+	@echo "  - docs/reports/ - Development reports"
+	@echo ""
+	@echo "To generate Go package documentation:"
+	@echo "  godoc -http=:6060"
 
 # Run static analysis
 vet:
@@ -98,22 +121,37 @@ dev-setup:
 	@echo "Setting up development environment..."
 	@bash scripts/dev_setup.sh
 
+# Experiment runner
+experiment:
+	@echo "Running experiments..."
+	@echo "⚠️  Experiment runner not yet implemented (M6.2)"
+	@echo "Placeholder for: ./bin/uad-runner --config experiments/configs/..."
+
 # Help
 help:
 	@echo "UAD Language Makefile"
 	@echo ""
-	@echo "Targets:"
+	@echo "Build Targets:"
 	@echo "  all           - Build all binaries (default)"
-	@echo "  build         - Build uadc, uadvm, and uadrepl"
+	@echo "  build         - Build uadc, uadvm, uadrepl, and uadi"
+	@echo "  clean         - Remove build artifacts"
+	@echo "  install       - Install binaries to GOPATH/bin"
+	@echo ""
+	@echo "Development Targets:"
 	@echo "  test          - Run all tests"
 	@echo "  test-coverage - Run tests with coverage report"
-	@echo "  clean         - Remove build artifacts"
-	@echo "  run-examples  - Run example programs"
-	@echo "  install       - Install binaries to GOPATH/bin"
 	@echo "  fmt           - Format all Go code"
 	@echo "  lint          - Run linter (requires golangci-lint)"
 	@echo "  vet           - Run go vet"
 	@echo "  deps          - Download and tidy dependencies"
 	@echo "  dev-setup     - Setup development environment"
+	@echo ""
+	@echo "Execution Targets:"
+	@echo "  run-examples  - Run all example programs"
+	@echo "  example       - Run a specific example (make example FILE=path/to/file.uad)"
+	@echo "  experiment    - Run experiments (M6.2 - not yet implemented)"
+	@echo ""
+	@echo "Documentation Targets:"
+	@echo "  docs          - Show documentation locations"
 	@echo "  help          - Show this help message"
 
