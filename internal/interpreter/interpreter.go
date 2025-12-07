@@ -885,6 +885,39 @@ func (i *Interpreter) execEntangleStmt(stmt *ast.EntangleStmt) error {
 	return nil
 }
 
+// execUseStmt executes a use statement for calling motifs.
+// For now, this is a placeholder that acknowledges the statement.
+func (i *Interpreter) execUseStmt(stmt *ast.UseStmt) error {
+	// Evaluate arguments if any
+	argValues := make([]Value, len(stmt.Args))
+	for idx, arg := range stmt.Args {
+		val, err := i.evalExpr(arg)
+		if err != nil {
+			return err
+		}
+		argValues[idx] = val
+	}
+
+	// Format arguments for output
+	argStrs := make([]string, len(argValues))
+	for idx, val := range argValues {
+		argStrs[idx] = ToString(val)
+	}
+
+	if len(argStrs) > 0 {
+		fmt.Printf("[Use Motif] %s(%s)\n", stmt.MotifName.Name, strings.Join(argStrs, ", "))
+	} else {
+		fmt.Printf("[Use Motif] %s\n", stmt.MotifName.Name)
+	}
+
+	// TODO(M2.3): Implement full motif execution
+	// - Look up motif in registry
+	// - Bind parameters to arguments
+	// - Execute motif body in current context
+
+	return nil
+}
+
 // ==================== Expression Evaluation ====================
 
 func (i *Interpreter) evalExpr(expr ast.Expr) (Value, error) {
