@@ -5,6 +5,16 @@
 // - Entanglement (M2.5): entangle
 
 // ============================================================================
+// Event Structure Definition
+// ============================================================================
+
+struct Event {
+    type: String,
+    target: String,
+    intensity: Int,
+}
+
+// ============================================================================
 // Musical DSL (M2.3) - Temporal Coordination
 // ============================================================================
 
@@ -12,6 +22,7 @@ motif scan_pattern {
     emit Event {
         type: "scan",
         target: "network",
+        intensity: 3,
     };
 }
 
@@ -23,6 +34,7 @@ score CyberOps {
             let intensity: Int = 5;
             emit Event {
                 type: "probe",
+                target: "target",
                 intensity: intensity,
             };
         }
@@ -90,4 +102,3 @@ fn main() {
     print("");
     print("All advanced DSL features are now integrated!");
 }
-

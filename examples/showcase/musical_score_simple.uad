@@ -3,6 +3,16 @@
 // This version uses the currently supported syntax (no nested bars)
 
 // ============================================================================
+// Event Structure Definition
+// ============================================================================
+
+struct Event {
+    type: String,
+    target: String,
+    intensity: Int,
+}
+
+// ============================================================================
 // Motif Definitions - Reusable Temporal Patterns
 // ============================================================================
 
@@ -27,6 +37,7 @@ motif attack_pattern(severity: Int, target: String) {
         type: "exploit",
         severity: severity,
         target: target,
+        intensity: 5,
     };
 }
 
@@ -34,12 +45,14 @@ motif attack_pattern(severity: Int, target: String) {
 motif defense_response(threat_level: Int) {
     emit Event {
         type: "block",
-        threat_level: threat_level,
+        target: "threat",
+        intensity: threat_level,
     };
     
     emit Event {
         type: "alert",
-        priority: "high",
+        target: "system",
+        intensity: 8,
     };
 }
 
@@ -57,6 +70,7 @@ score CyberSecuritySimulation {
             let scan_intensity: Int = 5;
             emit Event {
                 type: "start_recon",
+                target: "network",
                 intensity: scan_intensity,
             };
         }
@@ -66,8 +80,8 @@ score CyberSecuritySimulation {
             let attack_severity: Int = 8;
             emit Event {
                 type: "launch_attack",
-                severity: attack_severity,
                 target: "database",
+                intensity: attack_severity,
             };
         }
     }
@@ -78,7 +92,8 @@ score CyberSecuritySimulation {
         bars 1..4 {
             emit Event {
                 type: "monitor",
-                status: "normal",
+                target: "system",
+                intensity: 3,
             };
         }
         
@@ -87,11 +102,13 @@ score CyberSecuritySimulation {
             let threat_level: Int = 7;
             emit Event {
                 type: "detect_threat",
-                level: threat_level,
+                target: "network",
+                intensity: threat_level,
             };
             emit Event {
                 type: "activate_defense",
-                mode: "aggressive",
+                target: "system",
+                intensity: 9,
             };
         }
     }
@@ -101,4 +118,3 @@ fn main() {
     print("Musical Score DSL - Cyber Security Simulation");
     print("This demonstrates temporal coordination of multi-agent systems");
 }
-

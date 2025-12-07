@@ -3,6 +3,22 @@
 // Shows multi-track temporal coordination for cyber simulation
 
 // ============================================================================
+// Event Structure Definition
+// ============================================================================
+
+struct Event {
+    type: String,
+    target: String,
+    intensity: Int,
+    severity: Int,
+    action: String,
+    data_size: Int,
+    destination: String,
+    protocol: String,
+    ratio: Float,
+}
+
+// ============================================================================
 // Motif Definitions - Reusable Temporal Patterns
 // ============================================================================
 

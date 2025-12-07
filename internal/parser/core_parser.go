@@ -190,7 +190,15 @@ func (p *Parser) parseFieldList() ([]*ast.Field, error) {
 	
 	for !p.check(lexer.TokenRBrace) && !p.isAtEnd() {
 		start := p.current().Span.Start
-		name := p.parseIdent()
+		// Allow keywords as field names (e.g., "type" as a field name)
+		var name *ast.Ident
+		if p.check(lexer.TokenIdent) {
+			name = p.parseIdent()
+		} else if lexer.IsKeyword(p.current().Type) {
+			tok := p.current()
+			p.advance()
+			name = ast.NewIdent(tok.Lexeme, tok.Span)
+		}
 		if name == nil {
 			return nil, p.error("expected field name")
 		}

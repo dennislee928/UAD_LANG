@@ -69,11 +69,29 @@ test:
 	@echo "Running tests..."
 	$(GO) test -v ./...
 
+# Run unit tests only
+test-unit:
+	@echo "Running unit tests..."
+	$(GO) test -v ./internal/...
+
+# Run integration tests only
+test-integration:
+	@echo "Running integration tests..."
+	$(GO) test -v ./tests/...
+
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
 	$(GO) test -v -coverprofile=coverage.out ./...
 	$(GO) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+# Show coverage summary
+show-coverage:
+	@echo "Generating coverage summary..."
+	@$(GO) test -coverprofile=coverage.out ./... > /dev/null 2>&1
+	@$(GO) tool cover -func=coverage.out | grep total
+	@echo "Detailed report: make test-coverage && open coverage.html"
 
 # Clean build artifacts
 clean:
@@ -82,9 +100,9 @@ clean:
 	@rm -f coverage.out coverage.html
 	@rm -f *.uadir
 
-# Run example programs
+# Run all example programs
 run-examples: build
-	@echo "Running examples..."
+	@echo "Running all examples..."
 	@bash scripts/run_examples.sh
 
 # Run a specific example
@@ -95,6 +113,28 @@ example: build
 	fi
 	@echo "Running $(FILE)..."
 	./bin/uadi -i $(FILE)
+
+# Run examples with unified CLI
+examples: $(UAD)
+	@echo "Running examples with unified CLI..."
+	@echo "\n=== Core Examples ==="
+	@find examples/core -name "*.uad" -type f | head -3 | while read f; do \
+		echo "Running $$f..."; \
+		$(UAD) run "$$f" || true; \
+		echo ""; \
+	done
+	@echo "\n=== Stdlib Examples ==="
+	@find examples/stdlib -name "*.uad" -type f | head -3 | while read f; do \
+		echo "Running $$f..."; \
+		$(UAD) run "$$f" || true; \
+		echo ""; \
+	done
+	@echo "\n=== DSL Showcase Examples ==="
+	@find examples/showcase -name "*_simple.uad" -o -name "*_test.uad" -o -name "all_dsl*.uad" | while read f; do \
+		echo "Running $$f..."; \
+		$(UAD) run "$$f" || true; \
+		echo ""; \
+	done
 
 # Install binaries to GOPATH/bin
 install: build
@@ -134,18 +174,35 @@ lint:
 	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; exit 1)
 	golangci-lint run ./...
 
+# Lint with auto-fix
+lint-fix:
+	@echo "Running linter with auto-fix..."
+	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; exit 1)
+	golangci-lint run --fix ./...
+
 # Generate documentation
 docs:
 	@echo "Generating documentation..."
 	@echo "📚 Documentation available in docs/"
-	@echo "  - docs/ARCHITECTURE.md - System architecture"
 	@echo "  - docs/REPO_SNAPSHOT.md - Project status"
-	@echo "  - docs/LANGUAGE_SPEC.md - Language specification"
+	@echo "  - docs/PARADIGM.md - Language paradigm"
+	@echo "  - docs/SEMANTICS_OVERVIEW.md - Semantics overview"
+	@echo "  - docs/ROADMAP.md - Development roadmap"
 	@echo "  - docs/specs/ - Formal specifications"
 	@echo "  - docs/reports/ - Development reports"
+	@echo "  - docs/CLI_GUIDE.md - CLI usage guide"
+	@echo "  - docs/STDLIB_API.md - Standard library API"
 	@echo ""
 	@echo "To generate Go package documentation:"
 	@echo "  godoc -http=:6060"
+	@echo ""
+	@echo "To view documentation in browser:"
+	@echo "  open docs/REPO_SNAPSHOT.md"
+
+# List all documentation files
+docs-list:
+	@echo "📚 Available Documentation:"
+	@find docs -name "*.md" -type f | sort
 
 # Run static analysis
 vet:
@@ -193,31 +250,48 @@ benchmark: build
 
 # Help
 help:
-	@echo "UAD Language Makefile"
+	@echo "════════════════════════════════════════════════════"
+	@echo "  UAD Language - Makefile Help"
+	@echo "════════════════════════════════════════════════════"
 	@echo ""
-	@echo "Build Targets:"
-	@echo "  all           - Build all binaries (default)"
-	@echo "  build         - Build uadc, uadvm, uadrepl, and uadi"
-	@echo "  clean         - Remove build artifacts"
-	@echo "  install       - Install binaries to GOPATH/bin"
+	@echo "📦 Build Targets:"
+	@echo "  all            - Build all binaries (default)"
+	@echo "  build          - Build all command-line tools"
+	@echo "  build-lsp      - Build LSP server"
+	@echo "  clean          - Remove build artifacts"
+	@echo "  install        - Install binaries to GOPATH/bin"
+	@echo "  install-cli    - Install unified CLI to /usr/local/bin (sudo)"
 	@echo ""
-	@echo "Development Targets:"
-	@echo "  test          - Run all tests"
-	@echo "  test-coverage - Run tests with coverage report"
-	@echo "  fmt           - Format all Go code"
-	@echo "  lint          - Run linter (requires golangci-lint)"
-	@echo "  vet           - Run go vet"
-	@echo "  deps          - Download and tidy dependencies"
-	@echo "  dev-setup     - Setup development environment"
+	@echo "🧪 Testing Targets:"
+	@echo "  test           - Run all tests"
+	@echo "  test-unit      - Run unit tests only"
+	@echo "  test-integration - Run integration tests only"
+	@echo "  test-coverage  - Run tests with coverage report"
+	@echo "  show-coverage  - Show coverage summary"
+	@echo "  test-cli       - Test unified CLI functionality"
 	@echo ""
-	@echo "Execution Targets:"
-	@echo "  run-examples    - Run all example programs"
-	@echo "  example         - Run a specific example (make example FILE=path/to/file.uad)"
+	@echo "🔧 Development Targets:"
+	@echo "  fmt            - Format all Go code"
+	@echo "  lint           - Run linter (requires golangci-lint)"
+	@echo "  lint-fix       - Run linter with auto-fix"
+	@echo "  vet            - Run go vet"
+	@echo "  deps           - Download and tidy dependencies"
+	@echo "  dev-setup      - Setup development environment"
+	@echo ""
+	@echo "🚀 Execution Targets:"
+	@echo "  run-examples   - Run all example programs (legacy)"
+	@echo "  examples       - Run examples with unified CLI"
+	@echo "  example        - Run specific example (make example FILE=...)"
 	@echo "  run-experiments - Run all experiments"
-	@echo "  experiment      - Run specific experiment (make experiment CONFIG=path/to/config.yaml)"
-	@echo "  benchmark       - Run benchmarks (make benchmark SCENARIO=scenario1)"
+	@echo "  experiment     - Run specific experiment (make experiment CONFIG=...)"
+	@echo "  benchmark      - Run benchmarks (make benchmark SCENARIO=...)"
 	@echo ""
-	@echo "Documentation Targets:"
-	@echo "  docs          - Show documentation locations"
-	@echo "  help          - Show this help message"
+	@echo "📚 Documentation Targets:"
+	@echo "  docs           - Show documentation locations"
+	@echo "  docs-list      - List all documentation files"
+	@echo "  help           - Show this help message"
+	@echo ""
+	@echo "════════════════════════════════════════════════════"
+	@echo "For more information, see: docs/REPO_SNAPSHOT.md"
+	@echo "════════════════════════════════════════════════════"
 
