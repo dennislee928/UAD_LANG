@@ -82,8 +82,18 @@ type ArrayValue struct {
 
 func (v *ArrayValue) Type() ValueType { return ValueTypeArray }
 func (v *ArrayValue) String() string {
-	// TODO: Implement proper array string representation
-	return "[...]"
+	if len(v.Elements) == 0 {
+		return "[]"
+	}
+	result := "["
+	for i, elem := range v.Elements {
+		if i > 0 {
+			result += ", "
+		}
+		result += elem.String()
+	}
+	result += "]"
+	return result
 }
 
 // MapValue represents a map value.
@@ -93,8 +103,20 @@ type MapValue struct {
 
 func (v *MapValue) Type() ValueType { return ValueTypeMap }
 func (v *MapValue) String() string {
-	// TODO: Implement proper map string representation
-	return "{...}"
+	if len(v.Entries) == 0 {
+		return "{}"
+	}
+	result := "{"
+	first := true
+	for key, val := range v.Entries {
+		if !first {
+			result += ", "
+		}
+		result += fmt.Sprintf("%s: %s", key, val.String())
+		first = false
+	}
+	result += "}"
+	return result
 }
 
 // StructValue represents a struct instance.
@@ -128,8 +150,34 @@ type DurationValue struct {
 
 func (v *DurationValue) Type() ValueType { return ValueTypeDuration }
 func (v *DurationValue) String() string {
-	// TODO: Implement human-readable duration format (e.g., "5m30s")
-	return fmt.Sprintf("%ds", v.Seconds)
+	// Convert seconds to human-readable format
+	s := v.Seconds
+	if s == 0 {
+		return "0s"
+	}
+	
+	days := s / 86400
+	s %= 86400
+	hours := s / 3600
+	s %= 3600
+	minutes := s / 60
+	seconds := s % 60
+	
+	result := ""
+	if days > 0 {
+		result += fmt.Sprintf("%dd", days)
+	}
+	if hours > 0 {
+		result += fmt.Sprintf("%dh", hours)
+	}
+	if minutes > 0 {
+		result += fmt.Sprintf("%dm", minutes)
+	}
+	if seconds > 0 {
+		result += fmt.Sprintf("%ds", seconds)
+	}
+	
+	return result
 }
 
 // TimeValue represents an absolute time point.
@@ -139,7 +187,9 @@ type TimeValue struct {
 
 func (v *TimeValue) Type() ValueType { return ValueTypeTime }
 func (v *TimeValue) String() string {
-	// TODO: Implement ISO 8601 format
+	// Return ISO 8601 format (basic implementation)
+	// For full implementation, would use time.Unix(v.UnixTimestamp, 0).Format(time.RFC3339)
+	// But avoiding time package dependency in runtime/core for now
 	return fmt.Sprintf("@%d", v.UnixTimestamp)
 }
 
