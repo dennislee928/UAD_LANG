@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/dennislee928/uad-lang/internal/ast"
@@ -461,9 +460,10 @@ func (p *Parser) ParseStmtExtension() (ast.Stmt, error) {
 
 // parseParam parses a function/motif parameter.
 // Syntax: <name>: <type>
+// Note: This is a helper that wraps the core parser's parameter parsing.
 func (p *Parser) parseParam() (*ast.Param, error) {
 	start := p.current().Span.Start
-
+	
 	name := p.parseIdent()
 	if name == nil {
 		return nil, p.error("expected parameter name")
@@ -477,25 +477,18 @@ func (p *Parser) parseParam() (*ast.Param, error) {
 	}
 
 	end := p.previous().Span.End
+	span := common.NewSpan(start, end, p.file)
+	param := ast.NewParam(name, typeExpr, span)
 
-	span := common.Span{
-		File:  p.file,
-		Start: start,
-		End:   end,
-	}
-
-	return &ast.Param{
-		Name: name,
-		Type: typeExpr,
-		Span: span,
-	}, nil
+	return param, nil
 }
 
 // parseField parses a struct/string field.
 // Syntax: <name>: <type>
+// Note: This is a helper that wraps the core parser's field parsing logic.
 func (p *Parser) parseField() (*ast.Field, error) {
 	start := p.current().Span.Start
-
+	
 	name := p.parseIdent()
 	if name == nil {
 		return nil, p.error("expected field name")
@@ -509,24 +502,10 @@ func (p *Parser) parseField() (*ast.Field, error) {
 	}
 
 	end := p.previous().Span.End
+	span := common.NewSpan(start, end, p.file)
+	field := ast.NewField(name, typeExpr, span)
 
-	span := common.Span{
-		File:  p.file,
-		Start: start,
-		End:   end,
-	}
-
-	return &ast.Field{
-		Name: name,
-		Type: typeExpr,
-		Span: span,
-	}, nil
-}
-
-// error creates a new parse error at the current position.
-func (p *Parser) error(message string) error {
-	token := p.current()
-	return common.NewError(token.Span, "parse error: %s", message)
+	return field, nil
 }
 
 // parseBlockExpr is assumed to exist in core_parser.go.

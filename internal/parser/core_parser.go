@@ -87,7 +87,7 @@ func (p *Parser) parseDecl() (ast.Decl, error) {
 		if extDecl, err := p.ParseDeclExtension(); extDecl != nil || err != nil {
 			return extDecl, err
 		}
-		return nil, common.NewError(p.current().Span, "expected declaration")
+		return nil, p.error("expected declaration")
 	}
 }
 
