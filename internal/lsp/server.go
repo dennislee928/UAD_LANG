@@ -1,0 +1,374 @@
+package lsp
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"sync"
+
+	"github.com/dennislee928/uad-lang/internal/lsp/protocol"
+)
+
+// Server is the main LSP server instance
+type Server struct {
+	// State
+	initialized bool
+	shutdown    bool
+	
+	// Document management
+	documents *DocumentManager
+	
+	// Analysis
+	analyzer *Analyzer
+	
+	// Mutex for thread safety
+	mu sync.RWMutex
+	
+	// Request/response tracking
+	nextID int
+	
+	// Context
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+// NewServer creates a new LSP server instance
+func NewServer() *Server {
+	ctx, cancel := context.WithCancel(context.Background())
+	
+	return &Server{
+		documents: NewDocumentManager(),
+		analyzer:  NewAnalyzer(),
+		ctx:       ctx,
+		cancel:    cancel,
+	}
+}
+
+// RunStdio runs the server using stdio for communication
+func (s *Server) RunStdio() error {
+	log.Println("LSP Server starting with stdio transport")
+	
+	reader := bufio.NewReader(os.Stdin)
+	writer := os.Stdout
+	
+	for {
+		// Check if shutdown
+		if s.shutdown {
+			log.Println("Server shutting down")
+			break
+		}
+		
+		// Read message
+		msg, err := s.readMessage(reader)
+		if err != nil {
+			if err == io.EOF {
+				log.Println("Client disconnected")
+				break
+			}
+			log.Printf("Error reading message: %v", err)
+			continue
+		}
+		
+		// Handle message
+		response, err := s.handleMessage(msg)
+		if err != nil {
+			log.Printf("Error handling message: %v", err)
+			// Send error response
+			s.sendError(writer, msg, err)
+			continue
+		}
+		
+		// Send response if not nil (notifications don't need responses)
+		if response != nil {
+			if err := s.sendMessage(writer, response); err != nil {
+				log.Printf("Error sending response: %v", err)
+			}
+		}
+	}
+	
+	return nil
+}
+
+// readMessage reads a JSON-RPC message from the reader
+func (s *Server) readMessage(reader *bufio.Reader) (map[string]interface{}, error) {
+	// Read headers
+	headers := make(map[string]string)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		
+		// Empty line marks end of headers
+		if line == "\r\n" || line == "\n" {
+			break
+		}
+		
+		// Parse header
+		var key, value string
+		fmt.Sscanf(line, "%s %s", &key, &value)
+		headers[key] = value
+	}
+	
+	// Get content length
+	contentLengthStr, ok := headers["Content-Length:"]
+	if !ok {
+		return nil, fmt.Errorf("missing Content-Length header")
+	}
+	
+	var contentLength int
+	fmt.Sscanf(contentLengthStr, "%d", &contentLength)
+	
+	// Read content
+	content := make([]byte, contentLength)
+	if _, err := io.ReadFull(reader, content); err != nil {
+		return nil, err
+	}
+	
+	// Parse JSON
+	var msg map[string]interface{}
+	if err := json.Unmarshal(content, &msg); err != nil {
+		return nil, err
+	}
+	
+	return msg, nil
+}
+
+// sendMessage sends a JSON-RPC message to the writer
+func (s *Server) sendMessage(writer io.Writer, msg map[string]interface{}) error {
+	// Marshal JSON
+	content, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	
+	// Write headers
+	headers := fmt.Sprintf("Content-Length: %d\r\n\r\n", len(content))
+	if _, err := writer.Write([]byte(headers)); err != nil {
+		return err
+	}
+	
+	// Write content
+	if _, err := writer.Write(content); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+// sendError sends an error response
+func (s *Server) sendError(writer io.Writer, request map[string]interface{}, err error) error {
+	response := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      request["id"],
+		"error": map[string]interface{}{
+			"code":    -32603, // Internal error
+			"message": err.Error(),
+		},
+	}
+	
+	return s.sendMessage(writer, response)
+}
+
+// handleMessage routes messages to appropriate handlers
+func (s *Server) handleMessage(msg map[string]interface{}) (map[string]interface{}, error) {
+	method, ok := msg["method"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing method field")
+	}
+	
+	log.Printf("Handling method: %s", method)
+	
+	// Get params
+	params, _ := msg["params"].(map[string]interface{})
+	
+	// Get ID (nil for notifications)
+	id := msg["id"]
+	
+	// Route to handler
+	switch method {
+	case "initialize":
+		return s.handleInitialize(id, params)
+	
+	case "initialized":
+		// Notification, no response needed
+		s.handleInitialized()
+		return nil, nil
+	
+	case "shutdown":
+		return s.handleShutdown(id)
+	
+	case "exit":
+		s.handleExit()
+		return nil, nil
+	
+	case "textDocument/didOpen":
+		s.handleDidOpen(params)
+		return nil, nil
+	
+	case "textDocument/didChange":
+		s.handleDidChange(params)
+		return nil, nil
+	
+	case "textDocument/didClose":
+		s.handleDidClose(params)
+		return nil, nil
+	
+	case "textDocument/completion":
+		return s.handleCompletion(id, params)
+	
+	case "textDocument/hover":
+		return s.handleHover(id, params)
+	
+	default:
+		log.Printf("Unhandled method: %s", method)
+		return s.successResponse(id, nil), nil
+	}
+}
+
+// successResponse creates a success response
+func (s *Server) successResponse(id interface{}, result interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      id,
+		"result":  result,
+	}
+}
+
+// handleInitialize handles the initialize request
+func (s *Server) handleInitialize(id interface{}, params map[string]interface{}) (map[string]interface{}, error) {
+	log.Println("Initialize request received")
+	
+	capabilities := map[string]interface{}{
+		"textDocumentSync": map[string]interface{}{
+			"openClose": true,
+			"change":    protocol.TextDocumentSyncKindIncremental,
+		},
+		"completionProvider": map[string]interface{}{
+			"triggerCharacters": []string{".", ":", "::"},
+		},
+		"hoverProvider": true,
+		// More capabilities will be added in future
+	}
+	
+	result := map[string]interface{}{
+		"capabilities": capabilities,
+		"serverInfo": map[string]interface{}{
+			"name":    "UAD Language Server",
+			"version": "0.1.0",
+		},
+	}
+	
+	s.mu.Lock()
+	s.initialized = true
+	s.mu.Unlock()
+	
+	return s.successResponse(id, result), nil
+}
+
+// handleInitialized handles the initialized notification
+func (s *Server) handleInitialized() {
+	log.Println("Client initialized")
+}
+
+// handleShutdown handles the shutdown request
+func (s *Server) handleShutdown(id interface{}) (map[string]interface{}, error) {
+	log.Println("Shutdown request received")
+	
+	s.mu.Lock()
+	s.shutdown = true
+	s.mu.Unlock()
+	
+	return s.successResponse(id, nil), nil
+}
+
+// handleExit handles the exit notification
+func (s *Server) handleExit() {
+	log.Println("Exit notification received")
+	s.cancel()
+	os.Exit(0)
+}
+
+// handleDidOpen handles textDocument/didOpen notification
+func (s *Server) handleDidOpen(params map[string]interface{}) {
+	textDocument, ok := params["textDocument"].(map[string]interface{})
+	if !ok {
+		log.Println("Invalid textDocument in didOpen")
+		return
+	}
+	
+	uri, _ := textDocument["uri"].(string)
+	text, _ := textDocument["text"].(string)
+	version, _ := textDocument["version"].(float64)
+	
+	log.Printf("Document opened: %s", uri)
+	
+	// Add document
+	s.documents.DidOpen(uri, text, int(version))
+	
+	// TODO: Analyze document and send diagnostics
+}
+
+// handleDidChange handles textDocument/didChange notification
+func (s *Server) handleDidChange(params map[string]interface{}) {
+	textDocument, ok := params["textDocument"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	
+	uri, _ := textDocument["uri"].(string)
+	version, _ := textDocument["version"].(float64)
+	
+	contentChanges, ok := params["contentChanges"].([]interface{})
+	if !ok || len(contentChanges) == 0 {
+		return
+	}
+	
+	// Get full text from first change (incremental sync not yet implemented)
+	change := contentChanges[0].(map[string]interface{})
+	text, _ := change["text"].(string)
+	
+	log.Printf("Document changed: %s", uri)
+	
+	// Update document
+	s.documents.DidChange(uri, text, int(version))
+	
+	// TODO: Re-analyze and send diagnostics
+}
+
+// handleDidClose handles textDocument/didClose notification
+func (s *Server) handleDidClose(params map[string]interface{}) {
+	textDocument, ok := params["textDocument"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	
+	uri, _ := textDocument["uri"].(string)
+	
+	log.Printf("Document closed: %s", uri)
+	
+	s.documents.DidClose(uri)
+}
+
+// handleCompletion handles textDocument/completion request
+func (s *Server) handleCompletion(id interface{}, params map[string]interface{}) (map[string]interface{}, error) {
+	log.Println("Completion request received")
+	
+	// TODO: Implement completion
+	items := []interface{}{}
+	
+	return s.successResponse(id, items), nil
+}
+
+// handleHover handles textDocument/hover request
+func (s *Server) handleHover(id interface{}, params map[string]interface{}) (map[string]interface{}, error) {
+	log.Println("Hover request received")
+	
+	// TODO: Implement hover
+	return s.successResponse(id, nil), nil
+}
+

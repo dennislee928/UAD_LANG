@@ -48,6 +48,15 @@ $(UADRUNNER):
 	@mkdir -p $(BINARY_DIR)
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADRUNNER) ./cmd/uad-runner
 
+# Build LSP Server
+UADLSP := $(BINARY_DIR)/uad-lsp
+$(UADLSP):
+	@echo "Building uad-lsp..."
+	@mkdir -p $(BINARY_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(UADLSP) ./cmd/uad-lsp
+
+build-lsp: $(UADLSP)
+
 # Run tests
 test:
 	@echo "Running tests..."
