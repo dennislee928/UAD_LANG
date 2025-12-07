@@ -74,6 +74,41 @@ cd tests/benchmarks
 
 Results will be saved in `results/` directory as JSON files.
 
+## Known Issues
+
+### UAD Compiler Not Fully Implemented
+
+The UAD compiler (`uadc`) is currently in development. Compile-time benchmarks may fail with:
+```
+uadc: compiler not yet implemented - Phase 1 in progress
+```
+
+This is expected and the benchmark script will continue with other languages using the `--ignore-failure` flag.
+
+### Rust LLVM Version Mismatch
+
+If you encounter errors like:
+```
+dyld: Symbol not found: __ZN4llvm10DataLayout5clearEv
+```
+
+This is a Rust/LLVM version mismatch issue. Solutions:
+
+1. **Update Rust** (recommended):
+   ```bash
+   rustup update
+   ```
+
+2. **Use Cargo instead of rustc**: The script automatically tries to use `cargo build --release` which handles LLVM issues better.
+
+3. **Reinstall Rust**:
+   ```bash
+   rustup self uninstall
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
+
+The benchmark script will automatically fall back to cargo if available, which is more reliable.
+
 ## Adding New Scenarios
 
 1. Create implementation in each language directory:

@@ -310,7 +310,8 @@ func (s *Server) handleDidOpen(params map[string]interface{}) {
 	// Add document
 	s.documents.DidOpen(uri, text, int(version))
 	
-	// TODO: Analyze document and send diagnostics
+	// Analyze document and publish diagnostics
+	go s.analyzeAndPublishDiagnostics(uri)
 }
 
 // handleDidChange handles textDocument/didChange notification
@@ -337,7 +338,8 @@ func (s *Server) handleDidChange(params map[string]interface{}) {
 	// Update document
 	s.documents.DidChange(uri, text, int(version))
 	
-	// TODO: Re-analyze and send diagnostics
+	// Re-analyze and send diagnostics
+	go s.analyzeAndPublishDiagnostics(uri)
 }
 
 // handleDidClose handles textDocument/didClose notification

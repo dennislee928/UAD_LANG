@@ -88,6 +88,12 @@ fi
 echo -e "${GREEN}All dependencies found!${NC}"
 echo ""
 
+# Warn about UAD compiler status
+echo -e "${YELLOW}Note: UAD compiler (uadc) is still in development${NC}"
+echo -e "${YELLOW}Compile benchmarks may fail - this is expected.${NC}"
+echo -e "${YELLOW}The script will continue with other languages using --ignore-failure.${NC}"
+echo ""
+
 # Create results directory
 mkdir -p "${RESULTS_DIR}"
 
@@ -102,15 +108,67 @@ run_compile_bench() {
     
     local results_file="${RESULTS_DIR}/compile_${scenario}_${TIMESTAMP}.json"
     
+    # Check if files exist
+    if [ ! -f "${uad_file}" ]; then
+        echo -e "${RED}Error: UAD file not found: ${uad_file}${NC}"
+        return 1
+    fi
+    if [ ! -f "${go_file}" ]; then
+        echo -e "${RED}Error: Go file not found: ${go_file}${NC}"
+        return 1
+    fi
+    if [ ! -f "${rust_file}" ]; then
+        echo -e "${RED}Error: Rust file not found: ${rust_file}${NC}"
+        return 1
+    fi
+    
+    # Try to use cargo for Rust if available (more reliable than rustc)
+    # Cargo handles LLVM version issues better
+    local rust_cmd="rustc -O ${rust_file} -o /tmp/${scenario}_rs"
+    if command -v cargo &> /dev/null; then
+        # Create a temporary Cargo project for Rust
+        local rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
+        mkdir -p "${rust_dir}/src"
+        cp "${rust_file}" "${rust_dir}/src/main.rs"
+        cat > "${rust_dir}/Cargo.toml" <<EOF
+[package]
+name = "bench_${scenario}"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "${scenario}"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+EOF
+        rust_cmd="(cd ${rust_dir} && cargo build --release --quiet 2>/dev/null && cp target/release/${scenario} /tmp/${scenario}_rs) || rustc -O ${rust_file} -o /tmp/${scenario}_rs"
+    fi
+    
+    # Prepare benchmark commands
+    local bench_commands=()
+    
+    # UAD compiler (may fail if not fully implemented)
+    bench_commands+=("${UADC} -i ${uad_file} -o /tmp/${scenario}_uad.uadir")
+    
+    # Go compiler
+    bench_commands+=("go build -o /tmp/${scenario}_go ${go_file}")
+    
+    # Rust compiler
+    bench_commands+=("${rust_cmd}")
+    
+    # Run benchmarks with ignore-failure to continue even if some fail
+    echo -e "${YELLOW}Note: UAD compiler may fail if not fully implemented - this is expected${NC}"
     hyperfine \
         --warmup 3 \
         --min-runs 10 \
         --export-json "${results_file}" \
+        --ignore-failure \
         --setup "rm -f /tmp/${scenario}_*" \
-        "${UADC} -i ${uad_file} -o /tmp/${scenario}_uad.uadir" \
-        "go build -o /tmp/${scenario}_go ${go_file}" \
-        "rustc -O ${rust_file} -o /tmp/${scenario}_rs" || {
-            echo -e "${RED}Warning: Some compile benchmarks failed${NC}"
+        "${bench_commands[@]}" 2>&1 || {
+            echo -e "${YELLOW}Note: Some compile benchmarks failed (this is expected if UAD compiler is not fully implemented)${NC}"
         }
     
     echo -e "${GREEN}Compile-time results saved to ${results_file}${NC}"
@@ -125,25 +183,89 @@ run_runtime_bench() {
     
     local results_file="${RESULTS_DIR}/runtime_${scenario}_${TIMESTAMP}.json"
     
-    # Ensure binaries exist
+    # Build binaries if they don't exist
+    local benchmarks=()
+    
+    # UAD interpreter
+    if [ -f "${BENCH_DIR}/uad/${scenario}.uad" ]; then
+        benchmarks+=("${UADI} -i ${BENCH_DIR}/uad/${scenario}.uad")
+    fi
+    
+    # Go binary
     if [ ! -f "/tmp/${scenario}_go" ]; then
         echo -e "${YELLOW}Building Go binary...${NC}"
-        go build -o /tmp/${scenario}_go "${BENCH_DIR}/go/${scenario}.go"
+        if go build -o /tmp/${scenario}_go "${BENCH_DIR}/go/${scenario}.go" 2>/dev/null; then
+            benchmarks+=("/tmp/${scenario}_go")
+        else
+            echo -e "${RED}Warning: Failed to build Go binary${NC}"
+        fi
+    else
+        benchmarks+=("/tmp/${scenario}_go")
     fi
     
+    # Rust binary - try cargo first, then rustc
     if [ ! -f "/tmp/${scenario}_rs" ]; then
         echo -e "${YELLOW}Building Rust binary...${NC}"
-        rustc -O "${BENCH_DIR}/rust/${scenario}.rs" -o /tmp/${scenario}_rs
+        local rust_built=0
+        
+        # Try cargo build (more reliable, handles LLVM issues better)
+        if command -v cargo &> /dev/null; then
+            local rust_dir="/tmp/rust_bench_${scenario}_${TIMESTAMP}"
+            mkdir -p "${rust_dir}/src"
+            cp "${BENCH_DIR}/rust/${scenario}.rs" "${rust_dir}/src/main.rs"
+            cat > "${rust_dir}/Cargo.toml" <<EOF
+[package]
+name = "bench_${scenario}"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "${scenario}"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+EOF
+            if (cd "${rust_dir}" && cargo build --release --quiet 2>/dev/null); then
+                if cp "${rust_dir}/target/release/${scenario}" /tmp/${scenario}_rs 2>/dev/null; then
+                    rust_built=1
+                fi
+            fi
+        fi
+        
+        # Fallback to rustc (may fail with LLVM version mismatch)
+        if [ $rust_built -eq 0 ]; then
+            if rustc -O "${BENCH_DIR}/rust/${scenario}.rs" -o /tmp/${scenario}_rs 2>/dev/null; then
+                rust_built=1
+            fi
+        fi
+        
+        if [ $rust_built -eq 1 ]; then
+            benchmarks+=("/tmp/${scenario}_rs")
+        else
+            echo -e "${RED}Warning: Failed to build Rust binary${NC}"
+            echo -e "${YELLOW}This may be due to LLVM version mismatch. Try:${NC}"
+            echo -e "  ${YELLOW}rustup update${NC}"
+            echo -e "  ${YELLOW}Or use cargo instead of rustc (already attempted)${NC}"
+        fi
+    else
+        benchmarks+=("/tmp/${scenario}_rs")
     fi
     
+    if [ ${#benchmarks[@]} -eq 0 ]; then
+        echo -e "${RED}Error: No valid benchmarks to run${NC}"
+        return 1
+    fi
+    
+    # Run benchmarks
     hyperfine \
         --warmup 3 \
         --min-runs 10 \
         --export-json "${results_file}" \
-        "${UADI} -i ${BENCH_DIR}/uad/${scenario}.uad" \
-        "/tmp/${scenario}_go" \
-        "/tmp/${scenario}_rs" || {
-            echo -e "${RED}Warning: Some runtime benchmarks failed${NC}"
+        --ignore-failure \
+        "${benchmarks[@]}" || {
+            echo -e "${YELLOW}Note: Some runtime benchmarks may have failed${NC}"
         }
     
     echo -e "${GREEN}Runtime results saved to ${results_file}${NC}"
@@ -166,13 +288,25 @@ display_summary() {
 # Main execution
 main() {
     local scenario=${1:-"scenario1"}
+    local mode=${2:-"all"}  # all, compile, runtime
     
     echo "Benchmark scenario: ${scenario}"
+    echo "Mode: ${mode}"
     echo ""
     
-    # Run benchmarks
-    run_compile_bench "${scenario}"
-    run_runtime_bench "${scenario}"
+    # Run benchmarks based on mode
+    case "${mode}" in
+        compile)
+            run_compile_bench "${scenario}"
+            ;;
+        runtime)
+            run_runtime_bench "${scenario}"
+            ;;
+        all|*)
+            run_compile_bench "${scenario}"
+            run_runtime_bench "${scenario}"
+            ;;
+    esac
     
     display_summary
 }
