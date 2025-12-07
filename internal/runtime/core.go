@@ -1,5 +1,7 @@
 package runtime
 
+import "fmt"
+
 // core.go provides core runtime concepts and execution logic.
 // This module defines the fundamental building blocks for UAD program execution,
 // including value representation, environment management, and execution context.
@@ -255,8 +257,6 @@ func (ctx *ExecutionContext) ClearOutput() {
 }
 
 // ==================== Helper Functions ====================
-
-import "fmt"
 
 // IsTruthy determines if a value is considered "true" in a boolean context.
 // In UAD: false and nil are falsy, everything else is truthy.

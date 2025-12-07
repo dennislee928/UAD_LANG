@@ -1,5 +1,7 @@
 package runtime
 
+import "fmt"
+
 // temporal.go provides temporal scheduling and time-based execution concepts.
 // This module supports the Musical DSL (M2.3) by providing a temporal grid
 // that allows precise control over when events occur in time.
@@ -226,6 +228,9 @@ func (mr *MotifRegistry) InstantiateMotif(name string, startBeat int, args map[s
 	// 3. Generating events based on the motif structure
 	// 4. Applying transformations (transposition, etc.)
 
+	// Placeholder: use motif to avoid unused variable error
+	_ = motif
+	
 	// Placeholder: return empty event list
 	return []*ScheduledEvent{}, nil
 }
@@ -287,6 +292,4 @@ func (br *BarRange) ToBeats(beatsPerBar int) (startBeat, endBeat int) {
 // TODO(M2.5): Integrate with Entanglement
 // - Entangled variables can be synchronized at specific time points
 // - Temporal constraints on entanglement lifetime
-
-import "fmt"
 

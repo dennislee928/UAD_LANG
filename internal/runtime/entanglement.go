@@ -1,5 +1,7 @@
 package runtime
 
+import "fmt"
+
 // entanglement.go provides quantum entanglement semantics for variable synchronization (M2.5).
 // Entangled variables share the same underlying value: when one changes, all change.
 
@@ -229,6 +231,4 @@ func CheckTypeCompatibility(varTypes map[string]string) error {
 // - Entangle only specific fields of structs
 // - Conditional entanglement (entangle when condition is true)
 // - Temporal entanglement (entangle for a specific duration)
-
-import "fmt"
 
