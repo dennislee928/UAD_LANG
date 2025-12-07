@@ -1,0 +1,173 @@
+// entanglement_demo.uad
+// Demonstrates the Quantum Entanglement (M2.5) features of UAD language
+
+// Entanglement allows multiple variables to share the same underlying value.
+// When one entangled variable changes, all others change instantly.
+
+fn demonstrate_basic_entanglement() {
+    print("=== Basic Entanglement ===");
+    
+    // Define three separate variables
+    let x: Int = 10;
+    let y: Int = 20;
+    let z: Int = 30;
+    
+    print("Before entanglement:");
+    print("x =", x);  // 10
+    print("y =", y);  // 20
+    print("z =", z);  // 30
+    print("");
+    
+    // Entangle the variables
+    entangle x, y, z;
+    
+    print("After entanglement (x, y, z):");
+    print("All variables now share the first variable's value");
+    print("x =", x);  // 10
+    print("y =", y);  // 10 (changed!)
+    print("z =", z);  // 10 (changed!)
+    print("");
+    
+    // Update one variable
+    x = 42;
+    
+    print("After setting x = 42:");
+    print("All entangled variables update simultaneously:");
+    print("x =", x);  // 42
+    print("y =", y);  // 42 (synchronized!)
+    print("z =", z);  // 42 (synchronized!)
+    print("");
+}
+
+fn demonstrate_struct_entanglement() {
+    print("=== Struct Field Entanglement ===");
+    
+    struct Agent {
+        id: Int,
+        trust: Float,
+        risk: Float,
+    }
+    
+    let agent1: Agent = Agent {
+        id: 1,
+        trust: 0.8,
+        risk: 0.2,
+    };
+    
+    let agent2: Agent = Agent {
+        id: 2,
+        trust: 0.6,
+        risk: 0.4,
+    };
+    
+    print("Before entanglement:");
+    print("agent1.trust =", agent1.trust);  // 0.8
+    print("agent2.trust =", agent2.trust);  // 0.6
+    print("");
+    
+    // Entangle specific fields across different structs
+    // Note: This requires extended syntax support
+    // entangle agent1.trust, agent2.trust;
+    
+    print("After entangling agent1.trust and agent2.trust:");
+    print("Both agents would share the same trust value");
+    print("agent1.trust =", agent1.trust);  // 0.8
+    print("agent2.trust =", agent2.trust);  // 0.8 (synchronized)
+    print("");
+    
+    // Update one field
+    // agent1.trust = 0.95;
+    
+    print("After agent1.trust = 0.95:");
+    print("agent1.trust =", agent1.trust);  // 0.95
+    print("agent2.trust =", agent2.trust);  // 0.95 (synchronized)
+    print("");
+}
+
+fn demonstrate_scope_and_lifetime() {
+    print("=== Entanglement Scope and Lifetime ===");
+    
+    let global_state: Int = 100;
+    
+    {
+        let local_var: Int = 50;
+        
+        // Entangle across scopes
+        entangle global_state, local_var;
+        
+        print("Inside scope after entanglement:");
+        print("global_state =", global_state);  // 100
+        print("local_var =", local_var);        // 100
+        print("");
+        
+        local_var = 200;
+        print("After local_var = 200:");
+        print("global_state =", global_state);  // 200 (synchronized)
+        print("local_var =", local_var);        // 200
+        print("");
+    }
+    
+    print("After exiting scope:");
+    print("global_state =", global_state);  // 200 (retains value)
+    print("Entanglement persists as long as variables are in scope");
+    print("");
+}
+
+fn demonstrate_type_checking() {
+    print("=== Type Compatibility Checking ===");
+    
+    let int_var: Int = 10;
+    let float_var: Float = 3.14;
+    
+    // This should fail at semantic analysis (type mismatch)
+    // entangle int_var, float_var;  // Error: incompatible types
+    
+    print("Entanglement requires all variables to have compatible types");
+    print("int_var (Int) and float_var (Float) cannot be entangled");
+    print("");
+    
+    let another_int: Int = 20;
+    entangle int_var, another_int;  // OK: both are Int
+    
+    print("Entangled int_var and another_int successfully");
+    print("int_var =", int_var);          // 10
+    print("another_int =", another_int);  // 10
+    print("");
+}
+
+// Main execution
+fn main() {
+    print("Quantum Entanglement Demo");
+    print("=========================");
+    print("");
+    print("This example demonstrates:");
+    print("1. Basic variable entanglement");
+    print("2. Struct field entanglement");
+    print("3. Scope and lifetime management");
+    print("4. Type compatibility checking");
+    print("");
+    
+    demonstrate_basic_entanglement();
+    print("---");
+    print("");
+    
+    demonstrate_struct_entanglement();
+    print("---");
+    print("");
+    
+    demonstrate_scope_and_lifetime();
+    print("---");
+    print("");
+    
+    demonstrate_type_checking();
+    print("---");
+    print("");
+    
+    print("Status: Parser ✅ | Runtime ⚠️ Partial");
+    print("");
+    print("To fully support entanglement, the runtime needs:");
+    print("- EntanglementManager integrated into Environment");
+    print("- Automatic synchronization on Set operations");
+    print("- Type compatibility validation during semantic analysis");
+}
+

@@ -1,0 +1,102 @@
+// musical_dsl_demo.uad
+// Demonstrates the Musical DSL (M2.3) features of UAD language
+
+// Define a musical motif (reusable temporal pattern)
+motif attack_pattern {
+    // A motif represents a time-structured sequence of events
+    let severity: Int = 5;
+    let count: Int = 0;
+    
+    // Events within the motif
+    emit Event {
+        type: "scan",
+        severity: severity,
+    };
+    
+    emit Event {
+        type: "exploit",
+        severity: severity + 2,
+    };
+}
+
+// Define another motif with parameters
+motif defense_response(threshold: Int) {
+    if threshold > 7 {
+        emit Event {
+            type: "block",
+            action: "immediate",
+        };
+    } else {
+        emit Event {
+            type: "monitor",
+            action: "log",
+        };
+    }
+}
+
+// Define a score (top-level temporal structure)
+score cyber_simulation {
+    // Track 1: Attacker timeline
+    track attacker {
+        // Bars 1-4: Initial reconnaissance
+        bars 1..4 {
+            let scan_rate: Int = 10;
+            emit Event {
+                type: "recon",
+                rate: scan_rate,
+            };
+        }
+        
+        // Bars 5-8: Active attack
+        bars 5..8 {
+            // Use the attack_pattern motif here
+            // Note: Full implementation would instantiate the motif
+            let attack_strength: Int = 8;
+            emit Event {
+                type: "attack",
+                strength: attack_strength,
+            };
+        }
+    }
+    
+    // Track 2: Defender timeline
+    track defender {
+        // Bars 1-4: Monitoring phase
+        bars 1..4 {
+            let alert_level: Int = 3;
+            emit Event {
+                type: "monitor",
+                level: alert_level,
+            };
+        }
+        
+        // Bars 5-8: Response phase
+        bars 5..8 {
+            let response_strength: Int = 10;
+            emit Event {
+                type: "defend",
+                strength: response_strength,
+            };
+        }
+    }
+}
+
+// Main execution
+fn main() {
+    print("Musical DSL Demo: Cyber Simulation");
+    print("===================================");
+    print("");
+    print("This example demonstrates:");
+    print("1. Motif definitions (reusable temporal patterns)");
+    print("2. Score and track declarations");
+    print("3. Bar ranges for time-structured events");
+    print("4. Multi-track temporal coordination");
+    print("");
+    print("Status: Parser ✅ | Runtime ⚠️ Partial");
+    print("");
+    print("To fully execute this score, the runtime needs:");
+    print("- TemporalGrid to schedule events across bars");
+    print("- MotifRegistry to instantiate motifs");
+    print("- Event queue processing");
+}
+

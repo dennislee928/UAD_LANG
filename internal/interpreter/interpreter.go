@@ -286,7 +286,8 @@ func (i *Interpreter) execDecl(decl ast.Decl) error {
 		// Type aliases are handled by type checker, no runtime action needed
 		return nil
 	case *ast.ImportDecl:
-		// TODO: Handle imports
+		// Import handling is deferred to future implementation
+		// For now, imports are no-op (stdlib is pre-loaded)
 		return nil
 	default:
 		return fmt.Errorf("unknown declaration type: %T", d)
@@ -379,12 +380,49 @@ func (i *Interpreter) execAssignStmt(stmt *ast.AssignStmt) error {
 		return i.env.Set(target.Name, value)
 		
 	case *ast.FieldAccess:
-		// TODO: Handle struct field assignment
-		return fmt.Errorf("struct field assignment not yet implemented")
+		// Handle struct field assignment
+		targetVal, err := i.evalExpr(target.Expr)
+		if err != nil {
+			return err
+		}
+		structVal, ok := targetVal.(*StructValue)
+		if !ok {
+			return fmt.Errorf("cannot assign to field of non-struct value")
+		}
+		structVal.Fields[target.Field.Name] = value
+		return nil
 		
 	case *ast.IndexExpr:
-		// TODO: Handle array/map index assignment
-		return fmt.Errorf("index assignment not yet implemented")
+		// Handle array/map index assignment
+		targetVal, err := i.evalExpr(target.Expr)
+		if err != nil {
+			return err
+		}
+		indexVal, err := i.evalExpr(target.Index)
+		if err != nil {
+			return err
+		}
+		
+		switch t := targetVal.(type) {
+		case *ArrayValue:
+			idx, ok := indexVal.(*IntValue)
+			if !ok {
+				return fmt.Errorf("array index must be Int")
+			}
+			if idx.Value < 0 || idx.Value >= int64(len(t.Elements)) {
+				return fmt.Errorf("array index out of bounds")
+			}
+			t.Elements[idx.Value] = value
+			return nil
+			
+		case *MapValue:
+			key := ToString(indexVal)
+			t.Entries[key] = value
+			return nil
+			
+		default:
+			return fmt.Errorf("cannot index assign to non-array/map type")
+		}
 		
 	default:
 		return fmt.Errorf("invalid assignment target: %T", target)

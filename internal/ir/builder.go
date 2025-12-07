@@ -203,12 +203,28 @@ func (b *Builder) buildAssignStmt(stmt *ast.AssignStmt) error {
 		return nil
 		
 	case *ast.FieldAccess:
-		// TODO: Struct field assignment
-		return fmt.Errorf("struct field assignment not yet implemented")
+		// Build target expression
+		if err := b.buildExpr(target.Expr); err != nil {
+			return err
+		}
+		// Build value (already on stack)
+		// Field name as constant
+		constIdx := b.currentFunc.AddConstant(NewConstant(ValueString, target.Field.Name))
+		b.currentFunc.AddInstruction(NewInstruction(OpSetField, constIdx, stmt.Span()))
+		return nil
 		
 	case *ast.IndexExpr:
-		// TODO: Array/map index assignment
-		return fmt.Errorf("index assignment not yet implemented")
+		// Build target expression
+		if err := b.buildExpr(target.Expr); err != nil {
+			return err
+		}
+		// Build index expression
+		if err := b.buildExpr(target.Index); err != nil {
+			return err
+		}
+		// Value is already on stack from earlier
+		b.currentFunc.AddInstruction(NewInstruction(OpSetIndex, 0, stmt.Span()))
+		return nil
 		
 	default:
 		return fmt.Errorf("invalid assignment target: %T", target)

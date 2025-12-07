@@ -83,6 +83,10 @@ func (p *Parser) parseDecl() (ast.Decl, error) {
 	case p.check(lexer.TokenImport):
 		return p.parseImportDecl()
 	default:
+		// Try extension declarations (M2.3-M2.5)
+		if extDecl, err := p.ParseDeclExtension(); extDecl != nil || err != nil {
+			return extDecl, err
+		}
 		return nil, p.error("expected declaration")
 	}
 }
@@ -416,6 +420,10 @@ func (p *Parser) parseStmt() (ast.Stmt, error) {
 	case p.check(lexer.TokenContinue):
 		return p.parseContinueStmt()
 	default:
+		// Try extension statements (M2.3-M2.5)
+		if extStmt, err := p.ParseStmtExtension(); extStmt != nil || err != nil {
+			return extStmt, err
+		}
 		// Try to parse as expression statement or assignment
 		return p.parseExprOrAssignStmt()
 	}
