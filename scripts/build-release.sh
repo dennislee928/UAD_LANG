@@ -155,3 +155,4 @@ echo "  GOOS=linux GOARCH=amd64 $0 ${VERSION}"
 echo "  GOOS=darwin GOARCH=arm64 $0 ${VERSION}"
 echo "  GOOS=windows GOARCH=amd64 $0 ${VERSION}"
 
+

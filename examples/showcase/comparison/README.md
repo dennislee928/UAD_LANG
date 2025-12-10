@@ -66,3 +66,4 @@ python3 psychohistory_scenario.py
 
 **最後更新**: 2025-01-07
 
+

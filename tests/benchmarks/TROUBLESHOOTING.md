@@ -148,3 +148,4 @@ cp ../../tests/benchmarks/rust/scenario1.rs src/main.rs
 cargo build --release
 ```
 
+

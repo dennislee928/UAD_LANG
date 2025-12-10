@@ -103,3 +103,4 @@ func (p *Provider) GetBuiltinFunctionHover(funcName string) *HoverInfo {
 	}
 }
 
+

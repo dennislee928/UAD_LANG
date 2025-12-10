@@ -225,3 +225,4 @@ func (f *Formatter) printTableFooter(fileWidth int) {
 	fmt.Println()
 }
 
+

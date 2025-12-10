@@ -229,3 +229,4 @@ func fileSize(args []runtime.Value) (runtime.Value, error) {
 	return &runtime.IntValue{Value: info.Size()}, nil
 }
 
+
